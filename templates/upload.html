@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drag and Drop EPUB Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        .upload-container {
+            margin: 20px auto;
+            padding: 20px;
+            border: 2px dashed #007BFF;
+            border-radius: 10px;
+            width: 50%;
+            cursor: pointer;
+            color: #555;
+        }
+        .upload-container.dragover {
+            border-color: #28a745;
+            color: #28a745;
+        }
+        .upload-container p {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Drag and Drop EPUB Upload</h1>
+    <div id="upload-container" class="upload-container">
+        <p>Drag and drop your .epub file here, or click to select a file.</p>
+    </div>
+    <form id="upload-form" method="POST" action="/process" enctype="multipart/form-data" style="display: none;">
+        <input type="file" id="file-input" name="file">
+    </form>
+    <script>
+        const container = document.getElementById('upload-container');
+        const fileInput = document.getElementById('file-input');
+        const form = document.getElementById('upload-form');
+
+        // Add dragover and dragleave event listeners for styling
+        container.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            container.classList.add('dragover');
+        });
+
+        container.addEventListener('dragleave', () => {
+            container.classList.remove('dragover');
+        });
+
+        // Handle drop event
+        container.addEventListener('drop', (event) => {
+            event.preventDefault();
+            container.classList.remove('dragover');
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files; // Assign files to the input
+                form.submit(); // Submit the form automatically
+            }
+        });
+
+        // Handle click event to trigger file dialog
+        container.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // Submit the form when a file is selected via dialog
+        fileInput.addEventListener('change', () => {
+            form.submit();
+        });
+    </script>
+</body>
+</html>

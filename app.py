@@ -1,63 +1,62 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
-from werkzeug.utils import secure_filename
+from flask import Flask, request, render_template, jsonify
 import os
-from preprocessor import TextIn
+from preprocessors import TextIn
 
-# Initialize the Flask app
 app = Flask(__name__)
 
-# Configure the upload folder and allowed file extensions
+# Set upload folder and ensure it exists
 UPLOAD_FOLDER = 'uploads'
-CLEAN_TEXT_FOLDER = 'clean_text'
-ALLOWED_EXTENSIONS = {'epub'}
+PROCESSED_FOLDER = 'clean_text'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(PROCESSED_FOLDER, exist_ok=True)
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Ensure directories exist
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(CLEAN_TEXT_FOLDER, exist_ok=True)
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
+# Welcome page
 @app.route('/')
 def welcome():
-    """Render a generic welcome splash page."""
-    return render_template('welcome.html')
+    return "<h1>Welcome to the EPUB Preprocessor!</h1><p>Upload an EPUB file for processing.</p>"
 
+# Drag-and-drop upload page
+@app.route('/upload', methods=['GET'])
+def upload_form():
+    return render_template('upload.html')
+
+# File upload and processing route
 @app.route('/process', methods=['POST'])
 def process_file():
-    """Route for processing an uploaded EPUB file."""
     if 'file' not in request.files:
         return jsonify({"error": "No file part in the request"}), 400
-    
+
     file = request.files['file']
-    
+
     if file.filename == '':
-        return jsonify({"error": "No file selected"}), 400
-    
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
-        
-        # Initialize the preprocessor and process the file
-        try:
-            processor = TextIn(
-                source=filepath,
-                start=1,  # Starting chapter
-                end=999,  # Process all chapters
-                skiplinks=True,
-                debug=False,
-                customwords='customwords.txt',  # Path to custom words dictionary
-                title="Sample Title",
-                author="Sample Author"
-            )
-            processor.get_chapters_epub()
-            return jsonify({"message": f"File processed successfully. Check {CLEAN_TEXT_FOLDER} for output."})
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-    
-    return jsonify({"error": "Invalid file type. Please upload an EPUB file."}), 400
+        return jsonify({"error": "No selected file"}), 400
+
+    if not file.filename.endswith('.epub'):
+        return jsonify({"error": "Invalid file type. Only .epub files are supported."}), 400
+
+    # Save the uploaded file
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    file.save(filepath)
+
+    try:
+        # Process the file using TextIn from preprocessor.py
+        text_processor = TextIn(
+            source=filepath,
+            start=1,  # Example start chapter
+            end=999,  # Process all chapters
+            skiplinks=True,
+            debug=False,
+            customwords='custom_words.txt',  # Provide a custom dictionary file
+            title="Sample Title",
+            author="Sample Author"
+        )
+
+        # Return success response
+        return jsonify({"message": f"File processed successfully. Output saved in '{PROCESSED_FOLDER}'."}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
