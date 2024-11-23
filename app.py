@@ -25,23 +25,34 @@ def upload_form():
 # File upload and processing route
 @app.route('/process', methods=['POST'])
 def process_file():
+    # Ensure file is part of the request
     if 'file' not in request.files:
         return jsonify({"error": "No file part in the request"}), 400
 
     file = request.files['file']
 
+    # Ensure the file has a valid filename
     if file.filename == '':
         return jsonify({"error": "No selected file"}), 400
 
+    # Ensure the file is an EPUB
     if not file.filename.endswith('.epub'):
         return jsonify({"error": "Invalid file type. Only .epub files are supported."}), 400
+
+    # Retrieve title and author from the form
+    title = request.form.get('title', '').strip()
+    author = request.form.get('author', '').strip()
+
+    # Validate title and author
+    if not title or not author:
+        return jsonify({"error": "Both title and author fields are required."}), 400
 
     # Save the uploaded file
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
     file.save(filepath)
 
     try:
-        # Process the file using TextIn from preprocessor.py
+        # Process the file using TextIn
         text_processor = TextIn(
             source=filepath,
             start=1,  # Example start chapter
@@ -49,8 +60,8 @@ def process_file():
             skiplinks=True,
             debug=False,
             customwords='custom_words.txt',  # Provide a custom dictionary file
-            title="Sample Title",
-            author="Sample Author"
+            title=title,  # Use the provided title
+            author=author  # Use the provided author
         )
 
         # Return success response
