@@ -1,0 +1,82 @@
+Alastor|alas-tor-
+Albus|al-bus
+Amortentia| amor-ten-tee-ah
+Animagi|An–ee–maj–eye
+Animagus|An–ee–maj–gus
+Apparate|App–ah–rate
+Augurey|Org–you–re
+Basilisk|Bas–ah–lisk
+Beauxbatons|Bo–bat–ons
+Bellatrix|Bella-tricks-less-strange
+Bezoar| bee-zo-are
+Boggart|Bog–art
+Chupacabra|Chu–puh–ka–bruh
+Colloportus|Col–oh–portus
+Demiguise|Demi–guise
+Diagon Alley|Die–a–gon-Alley
+Diggory|Dig-or-ee
+Diggorys|Dig-or-ees
+Draco|Dray-co
+Dumbledore|dum-bell-door
+Dumbledores|dum-bell-doors
+Eeylops|Eye–lops
+Erised|Error–said
+Erumpent|Eh–rump–ent
+Expelliarmus|Expel–ee–arm–us
+Fidelius Charm|Fi–day–lee–us–Charm
+Firenze|frenzy
+Ginny|Gin-knee
+Granger|Grain-jer
+Grimmauld Place|Grim–old–Place
+Gryffindor|Griff–in–door
+Gryffindors|Griff–in–doors
+Hagrid|Hag-rid
+Hermione|her-my-oh-nee
+Hogsmeade|Hogs–meade
+Hufflepuff|Huffle–Puff
+Imperturbable|Im–per–ter-bub–bull
+Kneazle|Knee–zel
+Knut| Ca-nut
+Knuts|Ca–noots
+Kreacher| creature
+Legilimency|Leh–jill–ah–men–see
+Legilimens| La-jill-le-mens
+Lestrange|La-strange
+Leviosa|Lev–ee–oh–sa
+Lucius|Loo-see-us
+Ludo|Lewd-oh
+Malfoy|Mal-foy
+McGOnagall|Mc-Gone-ah-gull
+merope|mer-oh-pee
+Minerva|Min-er-var
+Mundungus|Mun-dung-gus
+Nagini|Nag-ee-knee
+Narcissa|Nar-sis-ah
+Occamy|Ock–ah–me
+Occlumency|Aw–clue–men–see
+Ollivanders|Olly–vanders
+Patronus|Pat–rone–us
+Pensieve|Pen–sieve
+Phoenix|Fee–nix
+Quidditch|Quid–itch
+Rabastan|Raba-stan
+Ravenclaw| Raven-claw
+Ravenclaws| Raven-claws
+Rodolphus|Ro-dolph-us
+Rubeus|Roo-be-us
+Seamus|shay-mus
+Sectumsempra|Sect–um–semp–ra
+Sirius|Siri-us
+Slytherin|slither-in
+Slytherins|Slyther–inns
+Sybill|si-bull
+ssh|shush
+Tarantallegra|Ta–ron–ta–leg–ra
+Thestral|Thes–tral
+Trelawney|treh-lawn-ee
+Veela|Vee–la
+Veritaserum|Veritas–ear–um
+Voldemort| vol-de-more 
+Whinging|whinge-ing
+Wingardium|Wing–guard–ee–um
+Wizengamot|Wizen–gah–mot

@@ -7,7 +7,7 @@ from ebooklib import epub
 import ebooklib
 
 class TextIn:
-    def __init__(self, source, start, end, skiplinks, debug, customwords, title, author):
+    def __init__(self, source, start, end, skiplinks, debug, title, author, customwords="custom_words.txt"):
         self.source = source
         self.bookname = os.path.splitext(os.path.basename(source))[0]
         self.start = start - 1
