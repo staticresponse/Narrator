@@ -1,0 +1,4 @@
+Flask==2.3.2
+beautifulsoup4==4.12.2
+ebooklib==0.18
+Werkzeug==2.3.7
