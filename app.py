@@ -11,6 +11,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(PROCESSED_FOLDER, exist_ok=True)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
 
 # Welcome page
 @app.route('/')
@@ -68,6 +69,12 @@ def process_file():
         return jsonify({"message": f"File processed successfully. Output saved in '{PROCESSED_FOLDER}'."}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# Route to display available items in the clean_text directory
+@app.route('/available-items', methods=['GET'])
+def available_items():
+    files = os.listdir(PROCESSED_FOLDER)  # List files in the clean_text directory
+    return render_template('available_items.html', files=files)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
