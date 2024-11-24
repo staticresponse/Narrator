@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template, jsonify, send_from_directory
 import os
 from preprocessors import TextIn
 
@@ -71,7 +71,7 @@ def process_file():
         return jsonify({"error": str(e)}), 500
 
 # Route to display available items in the clean_text directory
-@app.route('/available-items', methods=['GET'])
+@app.route('/cleaned', methods=['GET'])
 def available_items():
     files = os.listdir(PROCESSED_FOLDER)  # List files in the clean_text directory
     return render_template('available_items.html', files=files)
