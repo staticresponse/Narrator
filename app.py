@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template, jsonify, send_from_directory
 import os
 from preprocessors import TextIn
 
@@ -11,6 +11,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(PROCESSED_FOLDER, exist_ok=True)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
 
 # Welcome page
 @app.route('/')
@@ -68,6 +69,13 @@ def process_file():
         return jsonify({"message": f"File processed successfully. Output saved in '{PROCESSED_FOLDER}'."}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# Route to display available items in the clean_text directory
+@app.route('/cleaned', methods=['GET'])
+def available_items():
+    files = os.listdir(PROCESSED_FOLDER)  # List files in the clean_text directory
+    files_with_index = list(enumerate(files))  # Create a list of (index, file) tuples
+    return render_template('available_items.html', files=files_with_index)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
