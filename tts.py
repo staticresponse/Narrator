@@ -30,15 +30,7 @@ class TTSGenerator:
         audio = WAVE(wav_path)
 
         audio.tags = ID3()
-        audio.tags.add(TIT2(encoding=3, text=title))  # Title
-        audio.tags.add(TPE1(encoding=3, text=author))  # Author
+        audio.tags.add(TIT2(encoding=3, text=title))
+        audio.tags.add(TPE1(encoding=3, text=author))
 
         audio.save()
-
-# Example usage
-if __name__ == "__main__":
-    generator = TTSGenerator()
-    file_path = "example.txt"
-    author = "John Doe"
-    title = "Sample Title"
-    generator.generate_wav(file_path, author, title)
