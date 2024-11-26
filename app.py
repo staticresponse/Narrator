@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, jsonify, send_from_directory
+from flask import Flask, request, render_template, jsonify, send_from_directory, redirect, url_for
 import os
 # CUSTOM MODULES
 from preprocessors import TextIn
@@ -84,29 +84,32 @@ def available_items():
     return render_template('available_items.html', files=files_with_index)
 
 # Route for TTS generation
+@app.route('/tts-form/<filename>', methods=['GET'])
+def tts_form(filename):
+    # Ensure the file exists in the processed folder
+    if not os.path.exists(os.path.join(PROCESSED_FOLDER, filename)):
+        return jsonify({"error": "File not found."}), 404
+
+    return render_template('tts_form.html', filename=filename)
+
+# Updated TTS generation route
 @app.route('/generate-tts', methods=['POST'])
 def generate_tts():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part in the request"}), 400
-
-    file = request.files['file']
-
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-
-    if not file.filename.endswith('.txt'):
-        return jsonify({"error": "Invalid file type. Only .txt files are supported for TTS generation."}), 400
-
+    filename = request.form.get('filename', '').strip()
     title = request.form.get('title', '').strip()
     author = request.form.get('author', '').strip()
+
+    # Validate inputs
+    if not filename or not os.path.exists(os.path.join(PROCESSED_FOLDER, filename)):
+        return jsonify({"error": "Invalid or missing file."}), 400
 
     if not title or not author:
         return jsonify({"error": "Both title and author fields are required."}), 400
 
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-    file.save(filepath)
+    filepath = os.path.join(PROCESSED_FOLDER, filename)
 
     try:
+        # Generate TTS
         tts_generator = TTSGenerator()
         output_file = tts_generator.generate_wav(filepath, author, title)
 
@@ -114,14 +117,9 @@ def generate_tts():
         final_path = os.path.join(app.config['AUDIO_FOLDER'], os.path.basename(output_file))
         os.rename(output_file, final_path)
 
-        return jsonify({"message": f"TTS audio generated successfully.", "file": final_path}), 200
+        return jsonify({"message": "TTS audio generated successfully.", "file": final_path}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-# Route to download generated audio files
-@app.route('/audio/<filename>', methods=['GET'])
-def download_audio(filename):
-    return send_from_directory(app.config['AUDIO_FOLDER'], filename)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

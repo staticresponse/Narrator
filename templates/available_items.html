@@ -22,8 +22,9 @@
         <td>{{ idx + 1 }}</td>
         <td>{{ file }}</td>
         <td>
-            <button class="btn btn-primary btn-sm" disabled>Placeholder</button>
+            <a href="{{ url_for('tts_form', filename=file) }}" class="btn btn-primary btn-sm">Generate TTS</a>
         </td>
+        
     </tr>
     {% else %}
     <tr>
