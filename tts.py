@@ -11,11 +11,18 @@ class TTSGenerator:
 
         :param model_name: Optional; The name of the TTS model to use.
         """
+        # Default model name
         default_model = "tts_models/en/ljspeech/glow-tts"
+
+        # Use the provided model name or default if not provided
+        self.model = model_name if model_name else default_model
+
         try:
-            self.tts = TTS(model_name=model_name or default_model)
+            # Attempt to initialize the TTS with the selected model
+            self.tts = TTS(model_name=self.model)
         except Exception as e:
             print(f"Failed to load model '{model_name}', defaulting to '{default_model}'. Error: {e}")
+            # Initialize with the default model if the specified model fails
             self.tts = TTS(model_name=default_model)
 
     def generate_wav(self, file_path, author, title):
