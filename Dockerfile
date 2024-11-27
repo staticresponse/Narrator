@@ -9,6 +9,9 @@ COPY requirements.txt /app/
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libtag1-dev \
     libxml2-dev \
     libxslt1-dev \
     && rm -rf /var/lib/apt/lists/*
