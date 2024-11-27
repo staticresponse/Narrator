@@ -4,13 +4,32 @@ import os
 import taglib
 
 class TTSGenerator:
-    def __init__(self):
-        self.tts = TTS(model_name="tts_models/en/ljspeech/glow-tts")
+    def __init__(self, model_name=None):
+        """
+        Initialize the TTSGenerator with the specified model name.
+        If no model name is provided or the model is invalid, it defaults to 'tts_models/en/ljspeech/glow-tts'.
+
+        :param model_name: Optional; The name of the TTS model to use.
+        """
+        default_model = "tts_models/en/ljspeech/glow-tts"
+        try:
+            self.tts = TTS(model_name=model_name or default_model)
+        except Exception as e:
+            print(f"Failed to load model '{model_name}', defaulting to '{default_model}'. Error: {e}")
+            self.tts = TTS(model_name=default_model)
 
     def generate_wav(self, file_path, author, title):
+        """
+        Generate a WAV file from the text in the specified file.
+
+        :param file_path: Path to the text file containing the text to synthesize.
+        :param author: The author name for metadata.
+        :param title: The title for metadata.
+        :return: Path to the generated WAV file.
+        """
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
-        
+
         with open(file_path, "r", encoding="utf-8") as file:
             text = file.read()
 
@@ -25,6 +44,11 @@ class TTSGenerator:
 
     @staticmethod
     def validate_wav(wav_path):
+        """
+        Validate that the generated file is a valid WAV file.
+
+        :param wav_path: Path to the WAV file to validate.
+        """
         try:
             with wave.open(wav_path, 'rb') as wf:
                 print(f"WAV file validation successful: {wav_path}")
@@ -33,6 +57,13 @@ class TTSGenerator:
 
     @staticmethod
     def add_metadata(wav_path, author, title):
+        """
+        Add metadata to the WAV file.
+
+        :param wav_path: Path to the WAV file.
+        :param author: Author metadata.
+        :param title: Title metadata.
+        """
         audio = taglib.File(wav_path)
         audio.tags["TITLE"] = [title]
         audio.tags["ARTIST"] = [author]
