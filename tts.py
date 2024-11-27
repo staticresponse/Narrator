@@ -4,7 +4,7 @@ import os
 import taglib
 
 class TTSGenerator:
-    def __init__(self, model_name=None):
+    def __init__(self, model=None):
         """
         Initialize the TTSGenerator with the specified model name.
         If no model name is provided or the model is invalid, it defaults to 'tts_models/en/ljspeech/glow-tts'.
@@ -15,13 +15,13 @@ class TTSGenerator:
         default_model = "tts_models/en/ljspeech/glow-tts"
 
         # Use the provided model name or default if not provided
-        self.model = model_name if model_name else default_model
+        self.model = model if model else default_model
 
         try:
             # Attempt to initialize the TTS with the selected model
             self.tts = TTS(model_name=self.model)
         except Exception as e:
-            print(f"Failed to load model '{model_name}', defaulting to '{default_model}'. Error: {e}")
+            print(f"Failed to load model '{model}', defaulting to '{default_model}'. Error: {e}")
             # Initialize with the default model if the specified model fails
             self.tts = TTS(model_name=default_model)
 
