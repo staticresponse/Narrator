@@ -90,7 +90,7 @@ def tts_form(filename):
     if not os.path.exists(os.path.join(PROCESSED_FOLDER, filename)):
         return jsonify({"error": "File not found."}), 404
 
-    models = ['tts_models/en/ljspeech/glow-tts','tts_models/en/ljspeech/vits','tts_models/en/ljspeech/fast_pitch','tts_models/en/vctk/fast_pitch','tts_models/en/multi-dataset/tortoise-v2','tts_models/en/ljspeech/overflow']  # Replace with actual models
+    models = ['tts_models/en/ljspeech/glow-tts','tts_models/en/ljspeech/vits','tts_models/en/multi-dataset/tortoise-v2','tts_models/en/ljspeech/overflow']  # Replace with actual models
     
     return render_template('tts_form.html', filename=filename, models=models)
 
