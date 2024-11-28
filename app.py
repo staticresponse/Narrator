@@ -1,5 +1,8 @@
-from flask import Flask, request, render_template, jsonify, send_from_directory, redirect, url_for
+from flask import Flask, request, render_template, jsonify, send_from_directory, redirect, url_for, 
+from threading import Thread
+import queue
 import os
+import queue
 # CUSTOM MODULES
 from preprocessors import TextIn
 from tts import TTSGenerator
@@ -18,6 +21,29 @@ os.makedirs(AUDIO_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
 app.config['AUDIO_FOLDER'] = AUDIO_FOLDER
+
+tts_queue = queue.Queue()
+def process_queue():
+    """Worker thread for processing TTS generation queue."""
+    while True:
+        try:
+            tts_task = tts_queue.get()
+            if tts_task is None:
+                break  # Stop the thread if a None task is received
+            print(f"Processing task: {tts_task}")
+            tts_generator = TTSGenerator(model=tts_task['model'])
+            output_file = tts_generator.generate_wav(
+                tts_task['filepath'], tts_task['author'], tts_task['title']
+            )
+            final_path = os.path.join(app.config['AUDIO_FOLDER'], os.path.basename(output_file))
+            os.rename(output_file, final_path)
+            print(f"TTS generation completed: {final_path}")
+        except Exception as e:
+            print(f"Error processing task: {e}")
+        finally:
+            tts_queue.task_done()
+worker_thread = Thread(target=process_queue, daemon=True)
+worker_thread.start()
 
 # Welcome page
 @app.route('/')
@@ -125,6 +151,33 @@ def generate_tts():
         return jsonify({"message": "TTS audio generated successfully.", "file": final_path, "model": model}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+@app.route('/add-to-queue', methods=['POST'])
+def add_to_queue():
+    filename = request.form.get('filename', '').strip()
+    title = request.form.get('title', '').strip()
+    author = request.form.get('author', '').strip()
+    model = request.form.get('model', '').strip()
+
+    # Validate inputs
+    if not filename or not os.path.exists(os.path.join(app.config['PROCESSED_FOLDER'], filename)):
+        return jsonify({"error": "Invalid or missing file."}), 400
+
+    if not title or not author:
+        return jsonify({"error": "Both title and author fields are required."}), 400
+
+    if not model:
+        return jsonify({"error": "Model selection is required."}), 400
+
+    # Add task to the queue
+    task = {
+        "filename": filename,
+        "title": title,
+        "author": author,
+        "model": model
+    }
+    tts_queue.put(task)
+
+    return jsonify({"message": "TTS generation task added to the queue.", "task": task}), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
