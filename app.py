@@ -27,7 +27,7 @@ def welcome():
 # Drag-and-drop upload page
 @app.route('/upload', methods=['GET'])
 def upload_form():
-    return render_template('upload.html')
+    return render_template('upload.html',title='Epub Convertor')
 
 # File upload and processing route
 @app.route('/process', methods=['POST'])
@@ -81,7 +81,7 @@ def process_file():
 def available_items():
     files = os.listdir(PROCESSED_FOLDER)  # List files in the clean_text directory
     files_with_index = list(enumerate(files))  # Create a list of (index, file) tuples
-    return render_template('available_items.html', files=files_with_index)
+    return render_template('available_items.html', title='Text Inventory', files=files_with_index)
 
 # Route for TTS generation
 @app.route('/tts-form/<filename>', methods=['GET'])
@@ -92,7 +92,7 @@ def tts_form(filename):
 
     models = ['tts_models/en/ljspeech/glow-tts','tts_models/en/ljspeech/vits','tts_models/en/multi-dataset/tortoise-v2','tts_models/en/ljspeech/overflow']  # Replace with actual models
     
-    return render_template('tts_form.html', filename=filename, models=models)
+    return render_template('tts_form.html', title='TTS request', filename=filename, models=models)
 
 @app.route('/generate-tts', methods=['POST'])
 def generate_tts():

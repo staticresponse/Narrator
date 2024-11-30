@@ -1,0 +1,14 @@
+.upload-container {
+    margin: 20px auto;
+    padding: 20px;
+    border: 2px dashed #007BFF;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #555;
+    text-align: center;
+}
+
+.upload-container.dragover {
+    border-color: #28a745;
+    color: #28a745;
+}
