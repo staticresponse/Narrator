@@ -144,5 +144,13 @@ def add_to_queue():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# Route to display available items in the tts audio directory
+@app.route('/audio', methods=['GET'])
+def available_items():
+    files = os.listdir(AUDIO_FOLDER)  # List files in the clean_text directory
+    files_with_index = list(enumerate(files))  # Create a list of (index, file) tuples
+    return render_template('available_items.html', title='Audio Inventory', files=files_with_index)
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
