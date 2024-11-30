@@ -149,7 +149,13 @@ def add_to_queue():
 def available_items():
     files = os.listdir(AUDIO_FOLDER)  # List files in the clean_text directory
     files_with_index = list(enumerate(files))  # Create a list of (index, file) tuples
-    return render_template('available_items.html', title='Audio Inventory', files=files_with_index)
+    return render_template('available_audio.html', title='Audio Inventory', files=files_with_index)
+@app.route('/audio/download/<filename>', methods=['GET'])
+def download_audio_file(filename):
+    # Ensure the file exists in the audio folder
+    if not os.path.exists(os.path.join(AUDIO_FOLDER, filename)):
+        return jsonify({"error": "File not found."}), 404
+    return send_from_directory(AUDIO_FOLDER, filename, as_attachment=True)
 
 
 if __name__ == '__main__':
