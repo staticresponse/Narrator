@@ -136,17 +136,21 @@ def generate_tts():
 
 @app.route('/add-to-queue', methods=['POST'])
 def add_to_queue():
-    filename = request.form.get('filename')
-    title = request.form.get('title')
-    author = request.form.get('author')
-    model = request.form.get('model')
+    filename = request.form.get('filename', '').strip()
+    title = request.form.get('title', '').strip()
+    author = request.form.get('author', '').strip()
+    model = request.form.get('model', '').strip()
 
-    if not filename or not os.path.exists(filename):
-        return jsonify({"error": "Invalid or missing file"}), 400
+    if not filename:
+        return jsonify({"error": "Filename is required."}), 400
+
+    file_path = os.path.join(app.config['PROCESSED_FOLDER'], filename)
+
+    if not os.path.exists(file_path):
+        return jsonify({"error": f"File not found in processed directory: {file_path}"}), 400
 
     try:
-        # Create a TTSGenerator instance and add it to the queue
-        tts_task = TTSGenerator(file_path=filename, author=author, title=title, model=model)
+        tts_task = TTSGenerator(file_path=file_path, author=author, title=title, model=model)
         tts_queue.put(tts_task)
         return jsonify({"message": "Task added to queue"}), 200
     except Exception as e:
