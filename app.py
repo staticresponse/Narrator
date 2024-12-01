@@ -11,13 +11,16 @@ app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 PROCESSED_FOLDER = 'clean_text'
 AUDIO_FOLDER = 'audio'  # Folder for generated audio files
+TXT_DONE_FOLDER = 'txt_done'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(PROCESSED_FOLDER, exist_ok=True)
 os.makedirs(AUDIO_FOLDER, exist_ok=True)
+os.makedirs(TXT_DONE_FOLDER, exist_ok=True)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
 app.config['AUDIO_FOLDER'] = AUDIO_FOLDER
+app.config['TXT_DONE_FOLDER'] = TXT_DONE_FOLDER
 
 # Welcome page
 @app.route('/')
@@ -124,6 +127,9 @@ def generate_tts():
 
         os.makedirs(app.config['AUDIO_FOLDER'], exist_ok=True)
         os.rename(output_file, final_path)
+        
+        txt_done_path = os.path.join(app.config['TXT_DONE_FOLDER'], filename)
+        os.rename(filepath, txt_done_path)
 
         return jsonify({
             "message": "TTS audio generated successfully.",
