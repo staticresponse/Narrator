@@ -1,16 +1,26 @@
-from TTS.api import TTS
 import wave
 import os
 import taglib
+from TTS.api import TTS
+from queue import Queue
+from threading import Thread
+
 
 class TTSGenerator:
-    def __init__(self, model=None):
+    def __init__(self, file_path, author, title, model=None):
         """
-        Initialize the TTSGenerator with the specified model name.
-        If no model name is provided or the model is invalid, it defaults to 'tts_models/en/ljspeech/glow-tts'.
+        Initialize the TTSGenerator instance with file details and TTS model.
 
-        :param model_name: Optional; The name of the TTS model to use.
+        :param file_path: Path to the text file containing the text to synthesize.
+        :param author: The author name for metadata.
+        :param title: The title for metadata.
+        :param model: Optional TTS model name.
         """
+        # File and metadata details
+        self.file_path = file_path
+        self.author = author
+        self.title = title
+
         # Default model name
         default_model = "tts_models/en/ljspeech/glow-tts"
 
@@ -25,29 +35,23 @@ class TTSGenerator:
             # Initialize with the default model if the specified model fails
             self.tts = TTS(model_name=default_model)
 
-    def generate_wav(self, file_path, author, title):
+    def generate_wav(self):
         """
         Generate a WAV file from the text in the specified file.
-
-        :param file_path: Path to the text file containing the text to synthesize.
-        :param author: The author name for metadata.
-        :param title: The title for metadata.
-        :return: Path to the generated WAV file.
         """
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"File not found: {file_path}")
+        if not os.path.exists(self.file_path):
+            raise FileNotFoundError(f"File not found: {self.file_path}")
 
-        with open(file_path, "r", encoding="utf-8") as file:
+        with open(self.file_path, "r", encoding="utf-8") as file:
             text = file.read()
 
-        output_file = os.path.splitext(file_path)[0] + ".wav"
+        output_file = os.path.splitext(self.file_path)[0] + ".wav"
         self.tts.tts_to_file(text=text, file_path=output_file)
 
         self.validate_wav(output_file)
-        self.add_metadata(output_file, author, title)
+        self.add_metadata(output_file, self.author, self.title)
 
         print(f"WAV file generated and saved at: {output_file}")
-        return output_file
 
     @staticmethod
     def validate_wav(wav_path):
@@ -75,3 +79,30 @@ class TTSGenerator:
         audio.tags["TITLE"] = [title]
         audio.tags["ARTIST"] = [author]
         audio.save()
+
+
+def process_queue(task_queue):
+    """
+    Process TTSGenerator tasks from the queue.
+
+    :param task_queue: Queue containing TTSGenerator objects.
+    """
+    while True:
+        tts_task = task_queue.get()
+
+        try:
+            tts_task.generate_wav()
+        except Exception as e:
+            print(f"Error processing task for file '{tts_task.file_path}': {e}")
+        finally:
+            # Mark the task as done
+            task_queue.task_done()
+
+
+# Initialize the task queue
+tts_queue = Queue()
+
+# Start the worker thread to process tasks from the queue
+worker_thread = Thread(target=process_queue, args=(tts_queue,))
+worker_thread.daemon = True  # Allow the program to exit even if the thread is running
+worker_thread.start()

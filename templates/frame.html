@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/upload.css') }}">
+    <title>{{ title }}</title>
+        <style>
+        .bin-container { display: flex; flex-wrap: wrap; gap: 10px; }
+        .bin { width: 18%; padding: 10px; border: 1px solid #ddd; }
+    </style>
+  </head>
+  <body>
+
+
+{% include 'navbar.html' %}
+
+{% block content %}
+{% endblock %}
+  </body>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{{ url_for('static', filename='src/bootstrap.bundle.min.js') }}"></script>
+</html>

@@ -2,7 +2,7 @@ from flask import Flask, request, render_template, jsonify, send_from_directory,
 import os
 # CUSTOM MODULES
 from preprocessors import TextIn
-from tts import TTSGenerator
+from tts import TTSGenerator, tts_queue
 # END CUSTOM MODULES
 
 app = Flask(__name__)
@@ -27,7 +27,7 @@ def welcome():
 # Drag-and-drop upload page
 @app.route('/upload', methods=['GET'])
 def upload_form():
-    return render_template('upload.html')
+    return render_template('upload.html',title='Epub Convertor')
 
 # File upload and processing route
 @app.route('/process', methods=['POST'])
@@ -81,7 +81,7 @@ def process_file():
 def available_items():
     files = os.listdir(PROCESSED_FOLDER)  # List files in the clean_text directory
     files_with_index = list(enumerate(files))  # Create a list of (index, file) tuples
-    return render_template('available_items.html', files=files_with_index)
+    return render_template('available_items.html', title='Text Inventory', files=files_with_index)
 
 # Route for TTS generation
 @app.route('/tts-form/<filename>', methods=['GET'])
@@ -92,21 +92,23 @@ def tts_form(filename):
 
     models = ['tts_models/en/ljspeech/glow-tts','tts_models/en/ljspeech/vits','tts_models/en/multi-dataset/tortoise-v2','tts_models/en/ljspeech/overflow']  # Replace with actual models
     
-    return render_template('tts_form.html', filename=filename, models=models)
+    return render_template('tts_form.html', title='TTS request', filename=filename, models=models)
 
 @app.route('/generate-tts', methods=['POST'])
 def generate_tts():
     filename = request.form.get('filename', '').strip()
     title = request.form.get('title', '').strip()
     author = request.form.get('author', '').strip()
-    model = request.form.get('model', '').strip()  # Retrieve the selected model
+    model = request.form.get('model', '').strip()
 
-    # Validate inputs
     if not filename or not os.path.exists(os.path.join(PROCESSED_FOLDER, filename)):
         return jsonify({"error": "Invalid or missing file."}), 400
 
-    if not title or not author:
-        return jsonify({"error": "Both title and author fields are required."}), 400
+    if not title:
+        return jsonify({"error": "Title is required."}), 400
+
+    if not author:
+        return jsonify({"error": "Author is required."}), 400
 
     if not model:
         return jsonify({"error": "Model selection is required."}), 400
@@ -114,17 +116,59 @@ def generate_tts():
     filepath = os.path.join(PROCESSED_FOLDER, filename)
 
     try:
-        # Generate TTS with the specified model
-        tts_generator = TTSGenerator(model=model)  # Pass the model to the TTS generator
-        output_file = tts_generator.generate_wav(filepath, author, title)
-
-        # Move generated file to AUDIO_FOLDER
+        tts_generator = TTSGenerator(file_path=filepath, author=author, title=title, model=model)
+        tts_generator.generate_wav()
+        
+        output_file = os.path.splitext(filepath)[0] + ".wav"
         final_path = os.path.join(app.config['AUDIO_FOLDER'], os.path.basename(output_file))
+
+        os.makedirs(app.config['AUDIO_FOLDER'], exist_ok=True)
         os.rename(output_file, final_path)
 
-        return jsonify({"message": "TTS audio generated successfully.", "file": final_path, "model": model}), 200
+        return jsonify({
+            "message": "TTS audio generated successfully.",
+            "file": final_path,
+            "model": model
+        }), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/add-to-queue', methods=['POST'])
+def add_to_queue():
+    filename = request.form.get('filename', '').strip()
+    title = request.form.get('title', '').strip()
+    author = request.form.get('author', '').strip()
+    model = request.form.get('model', '').strip()
+
+    if not filename:
+        return jsonify({"error": "Filename is required."}), 400
+
+    file_path = os.path.join(app.config['PROCESSED_FOLDER'], filename)
+
+    if not os.path.exists(file_path):
+        return jsonify({"error": f"File not found in processed directory: {file_path}"}), 400
+
+    try:
+        tts_task = TTSGenerator(file_path=file_path, author=author, title=title, model=model)
+        tts_queue.put(tts_task)
+        return jsonify({"message": "Task added to queue"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Route to display available items in the tts audio directory
+@app.route('/audio', methods=['GET'])
+def available_audio():
+    files = os.listdir(AUDIO_FOLDER)  # List files in the clean_text directory
+    files_with_index = list(enumerate(files))  # Create a list of (index, file) tuples
+    return render_template('available_audio.html', title='Audio Inventory', files=files_with_index)
+@app.route('/audio/download/<filename>', methods=['GET'])
+def download_audio_file(filename):
+    # Ensure the file exists in the audio folder
+    if not os.path.exists(os.path.join(AUDIO_FOLDER, filename)):
+        return jsonify({"error": "File not found."}), 404
+    return send_from_directory(AUDIO_FOLDER, filename, as_attachment=True)
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
