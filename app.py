@@ -155,6 +155,38 @@ def add_to_queue():
         return jsonify({"message": "Task added to queue"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+@app.route('/generate-all', methods=['GET', 'POST'])
+def generate_tts_all():
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        author = request.form.get('author', '').strip()
+        model = request.form.get('model', '').strip()
+
+        if not title or not author or not model:
+            return jsonify({"error": "Title, author, a
+        files = os.listdir(PROCESSED_FOLDER)
+        files_to_process = []
+
+        for filename in files:
+            file_path = os.path.join(PROCESSED_FOLDER, filename)
+            if os.path.isdir(file_path):
+                continue  
+                
+            tts_task = TTSGenerator(file_path=file_path, author=author, title=title, model=model)
+            tts_queue.put(tts_task)
+            files_to_process.append(filename)
+
+        if not files_to_process:
+            return jsonify({"error": "No files found for TTS generation."}), 400
+
+        return jsonify({
+            "message": f"Queued TTS generation for {len(files_to_process)} files.",
+            "files": files_to_process
+        }), 200
+
+
+    models = ['tts_models/en/ljspeech/glow-tts', 'tts_models/en/ljspeech/vits', 'tts_models/en/multi-dataset/tortoise-v2', 'tts_models/en/ljspeech/overflow']
+    return render_template('tts_form_all.html', models=models)
 
 # Route to display available items in the tts audio directory
 @app.route('/audio', methods=['GET'])
