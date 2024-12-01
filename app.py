@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, jsonify, send_from_directory, redirect, url_for, 
+from flask import Flask, request, render_template, jsonify, send_from_directory, redirect, url_for
 import os
 # CUSTOM MODULES
 from preprocessors import TextIn
@@ -146,7 +146,7 @@ def add_to_queue():
 
 # Route to display available items in the tts audio directory
 @app.route('/audio', methods=['GET'])
-def available_items():
+def available_audio():
     files = os.listdir(AUDIO_FOLDER)  # List files in the clean_text directory
     files_with_index = list(enumerate(files))  # Create a list of (index, file) tuples
     return render_template('available_audio.html', title='Audio Inventory', files=files_with_index)
