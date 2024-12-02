@@ -11,13 +11,16 @@ app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 PROCESSED_FOLDER = 'clean_text'
 AUDIO_FOLDER = 'audio'  # Folder for generated audio files
+TXT_DONE_FOLDER = 'txt_done'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(PROCESSED_FOLDER, exist_ok=True)
 os.makedirs(AUDIO_FOLDER, exist_ok=True)
+os.makedirs(TXT_DONE_FOLDER, exist_ok=True)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
 app.config['AUDIO_FOLDER'] = AUDIO_FOLDER
+app.config['TXT_DONE_FOLDER'] = TXT_DONE_FOLDER
 
 # Welcome page
 @app.route('/')
@@ -125,6 +128,9 @@ def generate_tts():
         os.makedirs(app.config['AUDIO_FOLDER'], exist_ok=True)
         os.rename(output_file, final_path)
 
+        txt_done_path = os.path.join(app.config['TXT_DONE_FOLDER'], filename)
+        os.rename(filepath, txt_done_path)
+
         return jsonify({
             "message": "TTS audio generated successfully.",
             "file": final_path,
@@ -155,6 +161,42 @@ def add_to_queue():
         return jsonify({"message": "Task added to queue"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/tts-all-form', methods=['GET'])
+def tts_all_form():
+    """
+    Render the form to queue TTS for all files.
+    """
+    available_models = ["tts_models/en/ljspeech/glow-tts", "tts_models/en/other-model"]  # Update with actual model names
+    return render_template('tts_all_form.html', models=available_models)
+
+@app.route('/generate-tts-all', methods=['POST'])
+def generate_tts_all():
+    """
+    Process the form and queue TTS generation for all files.
+    """
+    title = request.form.get('title', '').strip()
+    author = request.form.get('author', '').strip()
+    model = request.form.get('model', '').strip()
+
+    if not title or not author or not model:
+        return jsonify({"error": "All fields are required."}), 400
+
+    files = os.listdir(PROCESSED_FOLDER)
+    queued_files = []
+
+    for filename in files:
+        file_path = os.path.join(PROCESSED_FOLDER, filename)
+        if not os.path.isfile(file_path):
+            continue
+
+        tts_task = TTSGenerator(file_path=file_path, author=author, title=title, model=model)
+        tts_queue.put(tts_task)
+        queued_files.append(filename)
+
+    return render_template('tts_all_form.html', 
+                           models = ['tts_models/en/ljspeech/glow-tts','tts_models/en/ljspeech/vits','tts_models/en/multi-dataset/tortoise-v2','tts_models/en/ljspeech/overflow'], 
+                           message=f"Queued {len(queued_files)} files for processing.")
 
 # Route to display available items in the tts audio directory
 @app.route('/audio', methods=['GET'])

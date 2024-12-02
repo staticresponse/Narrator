@@ -1,0 +1,29 @@
+{% extends 'frame.html' %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h1 class="mb-4">Generate TTS for All Files</h1>
+
+        <!-- Form to select title, author, and model for all files -->
+        <form action="{{ url_for('generate_tts_all') }}" method="POST">
+            <div class="mb-3">
+                <label for="title" class="form-label">Title</label>
+                <input type="text" id="title" name="title" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="author" class="form-label">Author</label>
+                <input type="text" id="author" name="author" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="model" class="form-label">Model</label>
+                <select id="model" name="model" class="form-select" required>
+                    {% for model in models %}
+                    <option value="{{ model }}">{{ model }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-success">Queue TTS for All Files</button>
+        </form>
+    </div>
+{% endblock %}
