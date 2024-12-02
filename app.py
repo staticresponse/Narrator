@@ -128,9 +128,6 @@ def generate_tts():
         os.makedirs(app.config['AUDIO_FOLDER'], exist_ok=True)
         os.rename(output_file, final_path)
 
-        txt_done_path = os.path.join(app.config['TXT_DONE_FOLDER'], filename)
-        os.rename(filepath, txt_done_path)
-
         return jsonify({
             "message": "TTS audio generated successfully.",
             "file": final_path,

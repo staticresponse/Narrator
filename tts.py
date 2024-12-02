@@ -52,6 +52,22 @@ class TTSGenerator:
         self.add_metadata(output_file, self.author, self.title)
 
         print(f"WAV file generated and saved at: {output_file}")
+        self.move_processed_file()
+    def move_processed_file(self):
+        """
+        Move the processed text file to the 'txt_done' directory.
+        """
+        txt_done_dir = "txt_done"
+        os.makedirs(txt_done_dir, exist_ok=True)  # Ensure the directory exists
+
+        # Destination path in the txt_done directory
+        destination_path = os.path.join(txt_done_dir, os.path.basename(self.file_path))
+
+        try:
+            shutil.move(self.file_path, destination_path)
+            print(f"File moved to: {destination_path}")
+        except Exception as e:
+            print(f"Failed to move file '{self.file_path}' to '{destination_path}': {e}")
 
     @staticmethod
     def validate_wav(wav_path):
