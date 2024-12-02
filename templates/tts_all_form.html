@@ -5,7 +5,7 @@
         <h1 class="mb-4">Generate TTS for All Files</h1>
 
         <!-- Form to select title, author, and model for all files -->
-        <form method="POST">
+        <form action="{{ url_for('generate_tts_all') }}" method="POST">
             <div class="mb-3">
                 <label for="title" class="form-label">Title</label>
                 <input type="text" id="title" name="title" class="form-control" required>
