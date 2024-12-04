@@ -56,19 +56,41 @@ class TTSGenerator:
         self.move_processed_file()
     def move_processed_file(self):
         """
-        Move the processed text file to the 'txt_done' directory.
+        Move the processed text file and its generated audio file to their respective directories.
         """
+        # Directories for processed files
         txt_done_dir = "txt_done"
+        audio_done_dir = "audio"
         os.makedirs(txt_done_dir, exist_ok=True)  # Ensure the directory exists
+        os.makedirs(audio_done_dir, exist_ok=True)  # Ensure the directory exists
 
-        # Destination path in the txt_done directory
-        destination_path = os.path.join(txt_done_dir, os.path.basename(self.file_path))
+        # Destination paths
+        txt_destination_path = os.path.join(txt_done_dir, os.path.basename(self.file_path))
+        audio_file = os.path.splitext(self.file_path)[0] + ".wav"
+        audio_destination_path = os.path.join(audio_done_dir, os.path.basename(audio_file))
 
-        try:
-            shutil.move(self.file_path, destination_path)
-            print(f"File moved to: {destination_path}")
-        except Exception as e:
-            print(f"Failed to move file '{self.file_path}' to '{destination_path}': {e}")
+        # Move text file
+        if os.path.exists(self.file_path):
+            try:
+                print(f"Attempting to move '{self.file_path}' to '{txt_destination_path}'...")
+                shutil.move(self.file_path, txt_destination_path)
+                print(f"Text file successfully moved to: {txt_destination_path}")
+            except Exception as e:
+                print(f"Error while moving text file '{self.file_path}': {e}")
+        else:
+            print(f"Text file not found at: {self.file_path}. Skipping move.")
+
+        # Move audio file
+        if os.path.exists(audio_file):
+            try:
+                print(f"Attempting to move '{audio_file}' to '{audio_destination_path}'...")
+                shutil.move(audio_file, audio_destination_path)
+                print(f"Audio file successfully moved to: {audio_destination_path}")
+            except Exception as e:
+                print(f"Error while moving audio file '{audio_file}': {e}")
+        else:
+            print(f"Audio file not found at: {audio_file}. Skipping move.")
+
 
     @staticmethod
     def validate_wav(wav_path):
