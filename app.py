@@ -78,6 +78,13 @@ def available_items():
     files_with_index = list(enumerate(files))  # Create a list of (index, file) tuples
     return render_template('available_items.html', title='Text Inventory', files=files_with_index)
 
+# Route to display available items in the clean_text directory
+@app.route('/text-archive', methods=['GET'])
+def archived_items():
+    files = os.listdir(TXT_DONE_FOLDER)  # List files in the clean_text directory
+    files_with_index = list(enumerate(files))  # Create a list of (index, file) tuples
+    return render_template('available_items.html', title='Archived Text', files=files_with_index)
+
 # Route for TTS generation
 @app.route('/tts-form/<filename>', methods=['GET'])
 def tts_form(filename):
