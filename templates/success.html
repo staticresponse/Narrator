@@ -1,0 +1,13 @@
+{% extends 'frame.html' %}
+{% block content %}
+<h1>Success</h1>
+<p>{{ message }}</p>
+{% if details %}
+    <ul>
+        {% for detail in details %}
+            <li>{{ detail }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+    
+{% endblock %}
