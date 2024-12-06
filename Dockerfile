@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     libtag1-dev \
     libxml2-dev \
     libxslt1-dev \
+    espeak-ng \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies from requirements.txt
