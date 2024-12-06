@@ -187,6 +187,22 @@ def generate_tts_all():
     return render_template('success.html',  title='SUCCESS',
                            message=f"Queued {len(queued_files)} files for processing.",
                            details=queued_files)
+@app.route('/current-queue', methods=['GET'])
+def current_queue():
+    """
+    Display the current items in the TTS queue.
+    """
+    queue_items = []
+    with tts_queue.mutex:
+        for task in list(tts_queue.queue):
+            queue_items.append({
+                'file_path': task.file_path,
+                'author': task.author,
+                'title': task.title,
+                'model': task.model
+            })
+
+    return render_template('queue.html', title="Current TTS Queue", queue_items=queue_items)
 
 # Route to display available items in the tts audio directory
 @app.route('/audio', methods=['GET'])

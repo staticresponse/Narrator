@@ -1,0 +1,33 @@
+{% extends 'frame.html' %}
+
+{% block content %}
+
+
+<h1>{{ title }}</h1>
+    
+{% if queue_items %}
+    <table border="1">
+        <thead>
+            <tr>
+                <th>File Path</th>
+                <th>Author</th>
+                <th>Title</th>
+                <th>Model</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in queue_items %}
+                <tr>
+                    <td>{{ item.file_path }}</td>
+                    <td>{{ item.author }}</td>
+                    <td>{{ item.title }}</td>
+                    <td>{{ item.model }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>No items in the queue.</p>
+{% endif %}
+
+{% endblock %}
