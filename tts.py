@@ -41,25 +41,40 @@ class TTSGenerator:
         Generate a WAV file from the text in the specified file.
         """
         if not os.path.exists(self.file_path):
-            raise FileNotFoundError(f"File not found: {self.file_path}")
-
-        with open(self.file_path, "r", encoding="utf-8") as file:
-            text = file.read()
+            raise FileNotFoundError(f"File not found: {self.file_path}") # should never be triggered via flask. Here for unit tests only
 
         output_file = os.path.splitext(self.file_path)[0] + ".wav"
 
-        if self.model == "tts_models/en/vctk/vits" and self.speaker_id is not None:
-            # Pass speaker_id if required for the model
-            self.tts.tts_to_file(text=text, speaker_id=self.speaker_id, file_path=output_file)
+
+        if self.model == "tts_models/en/vctk/vits":
+            self.generate_vits(text, output_file)
         else:
-            # Generate without speaker_id for other models
-            self.tts.tts_to_file(text=text, file_path=output_file)
+            self.generate_generic_tts(text, output_file)
 
         self.validate_wav(output_file)
         self.add_metadata(output_file, self.author, self.title)
         print(f"WAV file generated and saved at: {output_file}")
 
         self.move_processed_file()
+
+    def generate_vits(self, output_file):
+        """
+        Generate a WAV file using the VITS model with speaker_id.
+        """
+        with open(self.file_path, "r", encoding="utf-8") as file:
+            text = file.read()
+        if self.speaker_id is None:
+            raise ValueError("speaker_id must be provided for VITS model.")
+        self.tts.tts_to_file(text=text, speaker_id=self.speaker_id, file_path=output_file)
+
+    def generate_generic_tts(self, output_file):
+        """
+        Generate a WAV file using a generic TTS model.
+        """
+        with open(self.file_path, "r", encoding="utf-8") as file:
+            text = file.read()
+        self.tts.tts_to_file(text=text, file_path=output_file)
+
 
     def move_processed_file(self):
         """
