@@ -35,7 +35,16 @@ class TTSGenerator:
         except Exception as e:
             print(f"Failed to load model '{model}', defaulting to '{default_model}'. Error: {e}")
             self.tts = TTS(model_name=default_model)
-
+    def ensure_punkt(self):
+        try:
+            nltk.data.find("tokenizers/punkt")
+        except LookupError:
+            nltk.download("punkt")
+        try:
+            nltk.data.find("tokenizers/punkt_tab")
+        except LookupError:
+            nltk.download("punkt_tab")
+            
     def generate_wav(self):
         """
         Generate a WAV file from the text in the specified file.
