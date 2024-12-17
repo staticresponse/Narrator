@@ -58,9 +58,9 @@ class TTSGenerator:
 
 
         if self.model == "tts_models/en/vctk/vits":
-            self.generate_vits(text, output_file)
+            self.generate_vits(output_file)
         else:
-            self.generate_generic_tts(text, output_file)
+            self.generate_generic_tts(output_file)
 
         self.validate_wav(output_file)
         self.add_metadata(output_file, self.author, self.title)
