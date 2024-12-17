@@ -5,6 +5,8 @@ from TTS.api import TTS
 from queue import Queue
 from threading import Thread
 import shutil
+# New in this branch
+from nltk.tokenize import sent_tokenize
 
 
 class TTSGenerator:
@@ -21,30 +23,25 @@ class TTSGenerator:
         self.file_path = file_path
         self.author = author
         self.title = title
+        self.debug = False
         self.speaker_id = speaker_id
-
+        self.device = "cpu" # overwrite with cuda if possible, else stay the same
         # Default model name
         default_model = "tts_models/en/ljspeech/glow-tts"
 
         # Use the provided model name or default if not provided
         self.model = model if model else default_model
+        if (
+            torch.cuda.is_available()
+            and torch.cuda.get_device_properties(0).total_memory > 3500000000
+        ):
+            print("Using GPU")
+            print(f"VRAM: {torch.cuda.get_device_properties(0).total_memory}")
+            self.device = "cuda"
+        else:
+            print("Not enough VRAM on GPU or CUDA not found. Using CPU") # purely for debug
+            self.device = "cpu"
 
-        try:
-            # Attempt to initialize the TTS with the selected model
-            self.tts = TTS(model_name=self.model)
-        except Exception as e:
-            print(f"Failed to load model '{model}', defaulting to '{default_model}'. Error: {e}")
-            self.tts = TTS(model_name=default_model)
-    def ensure_punkt(self):
-        try:
-            nltk.data.find("tokenizers/punkt")
-        except LookupError:
-            nltk.download("punkt")
-        try:
-            nltk.data.find("tokenizers/punkt_tab")
-        except LookupError:
-            nltk.download("punkt_tab")
-            
     def generate_wav(self):
         """
         Generate a WAV file from the text in the specified file.
@@ -74,7 +71,51 @@ class TTSGenerator:
             text = file.read()
         if self.speaker_id is None:
             raise ValueError("speaker_id must be provided for VITS model.")
-        self.tts.tts_to_file(text=text, speaker_id=self.speaker_id, file_path=output_file)
+        print(f"Saving to {output_file}")
+        sentance_chunk_length = 1000
+        files = []
+        position = 0
+        start_time = time.time()
+
+        chapter_job_que = []
+        tempfiles = []
+        config = {
+            'speaker': self.speaker,
+            'language': self.language,
+            'model_name': 'tts_models/en/vctk/vits',
+            'debug': self.debug,
+            'device': self.device,
+            'minratio': 0,
+            'engine_cl': None
+        }
+        # initialize the tts engine
+        if 'debug' not in config:
+            self.debug = False
+        self.tts =  TTS(self.config['model_name']).to(self.device)
+
+        sentences = sent_tokenize(text)
+        sentences = [s for s in sentences if any(c.isalnum() for c in s)]
+        sentence_groups = list(self.combine_sentences(sentences, sentance_chunk_length))
+        for x in range(len(sentence_groups)):
+            #skip if item is empty
+            if len(sentence_groups[x]) == 0:
+                continue
+            #skip if item has no characters or numbers
+            if not any(char.isalnum() for char in sentence_groups[x]):
+                continue
+            retries = 2
+            tempwav = "temp"+ "_" + str(x) + ".wav" # temp wavs of each sentence for future chunking
+            sentene_job_que.append((sentence_groups[x], tempwav))
+            tempfiles.append(tempwav)
+        chapter_job_que.append(({'config': config, 'tempfiles': tempfiles, 'sentene_job_que': sentene_job_que, 'outputwav': outputwav}))
+
+        print("initiating TTS Job")
+        if self.device == 'cuda':
+            map_result = list(map(process_book_chapter, chapter_job_que))
+        else:
+            pool = mp.Pool(processes=self.threads)
+            pool.map(process_book_chapter, chapter_job_que)
+
 
     def generate_generic_tts(self, output_file):
         """
@@ -131,6 +172,38 @@ class TTSGenerator:
         audio.tags["ARTIST"] = [author]
         audio.save()
 
+def join_temp_files_to_chapter(tempfiles, outputwav):
+    tempwavfiles = [AudioSegment.from_file(f"{f}") for f in tempfiles]
+    concatenated = sum(tempwavfiles)
+    # remove silence, then export to wav
+    #print(f"Replacing silences longer than 2 seconds with 2 seconds of silence ({outputwav})")
+    one_sec_silence = AudioSegment.silent(duration=2000)
+    two_sec_silence = AudioSegment.silent(duration=3000)
+    # This AudioSegment is dedicated for each file.
+    audio_modified = AudioSegment.empty()
+    # Split audio into chunks where detected silence is longer than 2 second
+    chunks = split_on_silence(
+        concatenated, min_silence_len=2000, silence_thresh=-50
+    )
+    # Iterate through each chunk
+    for chunkindex, chunk in enumerate(chunks):
+        audio_modified += chunk
+        audio_modified += one_sec_silence
+    # add extra 2sec silence at the end of each part/chapter
+    audio_modified += two_sec_silence
+    # Write modified audio to the final audio segment
+    audio_modified.export(outputwav, format="wav")
+    for f in tempfiles:
+        os.remove(f)
+
+def process_book_chapter(dat):
+    print("initiating chapter: ", dat['chapter'])
+    tts_engine = dat['config']['engine_cl'](dat['config'])
+    for text, file_name in dat['sentene_job_que']:
+        tts_engine.proccess_text_retry(text, file_name)
+    join_temp_files_to_chapter(dat['tempfiles'], dat['outputwav'])
+    print("done chapter: ", dat['chapter'])
+    return dat['outputwav']
 
 def process_queue(task_queue):
     while True:
