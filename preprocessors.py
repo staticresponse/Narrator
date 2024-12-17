@@ -105,6 +105,28 @@ class TextIn:
             Packages required: re
         '''
         text = text.replace("—", ", ").replace("--", ", ").replace(";", ", ").replace(":", ", ").replace("''", ", ")
+        text = (
+            text.replace("--", ", ")
+            .replace("—", ", ")
+            .replace(";", ", ")
+            .replace(":", ", ")
+            .replace("''", ", ")
+            .replace("’", "'")
+            .replace('“', '"')
+            .replace('”', '"')
+            .replace("◇", "")
+            .replace(" . . . ", ", ")
+            .replace("... ", ", ")
+            .replace("«", " ")
+            .replace("»", " ")
+            .replace("[", "")
+            .replace("]", "")
+            .replace("&", " and ")
+            .replace(" GNU ", " new ")
+            .replace("\n", " \n")
+            .replace("*", " ")
+            .strip()
+        )
         allowed_chars = string.ascii_letters + string.digits + "-,.!?' "
         text = ''.join(c for c in text if c in allowed_chars)
         return text
@@ -144,3 +166,4 @@ class TextIn:
                 word, pronunciation = line.strip().split('|', maxsplit=1)
                 pronunciation_dict[word.lower()] = pronunciation
         return pronunciation_dict
+    

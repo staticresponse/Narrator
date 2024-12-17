@@ -20,8 +20,11 @@ RUN apt-get update && apt-get install -y \
 # Install Python dependencies from requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code
+# Copy the rest of the application code, including nltk_data
 COPY . /app
+
+# Set an environment variable for NLTK to locate the nltk_data folder
+ENV NLTK_DATA=/app/nltk_data
 
 # Create necessary directories for uploads and processed files
 RUN mkdir -p /app/uploads /app/clean_text
