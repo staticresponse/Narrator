@@ -5,8 +5,13 @@ from TTS.api import TTS
 from queue import Queue
 from threading import Thread
 import shutil
-# New in this branch
+import torch
+import time
+import multiprocessing as mp
 from nltk.tokenize import sent_tokenize
+from pydub import AudioSegment
+from pydub.silence import split_on_silence
+
 
 
 class TTSGenerator:
