@@ -126,9 +126,10 @@ class TTSGenerator:
         """
         Generate a WAV file using a generic TTS model.
         """
+        tts = TTS(self.model).to(self.device)
         with open(self.file_path, "r", encoding="utf-8") as file:
             text = file.read()
-        self.tts.tts_to_file(text=text, file_path=output_file)
+        tts.tts_to_file(text=text, file_path=output_file)
 
 
     def move_processed_file(self):
