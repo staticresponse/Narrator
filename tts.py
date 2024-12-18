@@ -233,16 +233,18 @@ class TTSGenerator:
             logger.error(f"Background music file not found: {self.bkg_music_file}")
             return
 
-
         logger.info(f"Adding background music from {self.bkg_music_file} to {wav_path}")
 
         # Load the TTS audio and background music
         tts_audio = AudioSegment.from_file(wav_path)
         bkg_music = AudioSegment.from_file(self.bkg_music_file)
-        logger.debug(f"Background music length: {len(bkg_music)} ms")
 
-        # Adjust background music volume
-        bkg_music = bkg_music - (100 - self.bkg_music_volume)
+        # Normalize both audio tracks
+        tts_audio = tts_audio.normalize()
+        bkg_music = bkg_music.normalize()
+
+        # Adjust background music volume relative to TTS audio
+        bkg_music = bkg_music - 20 + (self.bkg_music_volume / 10.0)
 
         # Generate a playlist with gaps
         playlist = AudioSegment.silent(duration=self.min_gap)
@@ -257,6 +259,7 @@ class TTSGenerator:
         # Export the final audio
         combined_audio.export(wav_path, format="wav")
         logger.info(f"Background music added to {wav_path}")
+
 
     @staticmethod
     def validate_wav(wav_path):
