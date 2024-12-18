@@ -1,0 +1,37 @@
+{% extends 'frame.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center">{{ title }}</h1>
+    <form id="uploadForm" action="{{ url_for('process_overlay') }}" method="post" enctype="multipart/form-data">
+        <div id="dragDropZone" class="drag-drop-zone">
+            <p>Drag and drop your audio file here, or click to select a file.</p>
+            <input id="fileInput" type="file" name="file" accept=".mp3,.wav" style="display: none;">
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Upload</button>
+    </form>
+</div>
+
+<script>
+    const dragDropZone = document.getElementById('dragDropZone');
+    const fileInput = document.getElementById('fileInput');
+
+    dragDropZone.addEventListener('click', () => fileInput.click());
+
+    dragDropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dragDropZone.classList.add('dragging');
+    });
+
+    dragDropZone.addEventListener('dragleave', () => {
+        dragDropZone.classList.remove('dragging');
+    });
+
+    dragDropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dragDropZone.classList.remove('dragging');
+        const files = e.dataTransfer.files;
+        fileInput.files = files;
+    });
+</script>
+{% endblock %}

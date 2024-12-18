@@ -224,6 +224,33 @@ def download_audio_file(filename):
         return jsonify({"error": "File not found."}), 404
     return send_from_directory(AUDIO_FOLDER, filename, as_attachment=True)
 
+@app.route('/upload-overlay', methods=['GET'])
+def upload_overlay_form():
+    """
+    Render the form to upload overlay audio files.
+    """
+    return render_template('upload_overlay.html', title='Upload Overlay Audio')
+
+@app.route('/process-overlay', methods=['POST'])
+def process_overlay():
+    """
+    Handle the upload of overlay audio files.
+    """
+    if 'file' not in request.files:
+        return render_template('error.html', title="ERROR", error="No file part in the request")
+
+    file = request.files['file']
+
+    if file.filename == '':
+        return render_template('error.html', title="ERROR", error="No selected file")
+
+    if not file.filename.endswith(('.mp3', '.wav')):  # Validate audio file extensions
+        return render_template('error.html', title="ERROR", error="Invalid file type. Only .mp3 and .wav files are supported.")
+
+    filepath = os.path.join(app.config['OVERLAYS_FOLDER'], file.filename)
+    file.save(filepath)
+
+    return redirect(url_for('welcome'))  # Redirect to the home route
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
