@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 class TTSGenerator:
-    def __init__(self, file_path, author, title, model=None, speaker_id=None):
+    def __init__(self, file_path, author, title, model=None, speaker_id=None, enable_bkg_music=False, bkg_music_file=None, bkg_music_volume=50, min_gap=2000, max_gap=5000):
         """
         Initialize the TTSGenerator instance with file details, TTS model, and optional speaker ID.
 
@@ -34,6 +34,11 @@ class TTSGenerator:
         self.debug = False
         self.speaker_id = speaker_id
         self.device = "cpu" # overwrite with cuda if possible, else stay the same
+        self.enable_bkg_music = enable_bkg_music
+        self.bkg_music_file = bkg_music_file
+        self.bkg_music_volume = bkg_music_volume
+        self.min_gap = min_gap
+        self.max_gap = max_gap
         # Default model name
         default_model = "tts_models/en/ljspeech/glow-tts"
 
@@ -74,6 +79,9 @@ class TTSGenerator:
             self.generate_vits(output_file)
         else:
             self.generate_generic_tts(output_file)
+
+        if self.enable_bkg_music:
+            self.add_background_music(output_file)
 
         self.validate_wav(output_file)
         self.add_metadata(output_file, self.author, self.title)
@@ -217,6 +225,33 @@ class TTSGenerator:
                 logger.info(f"Audio file moved to: {audio_destination_path}")
             except Exception as e:
                 logger.error(f"Error while moving audio file '{audio_file}': {e}")
+    def add_background_music(self, wav_path):
+        if not os.path.exists(self.bkg_music_file):
+            logger.error(f"Background music file not found: {self.bkg_music_file}")
+            return
+
+        logger.info(f"Adding background music from {self.bkg_music_file} to {wav_path}")
+
+        # Load the TTS audio and background music
+        tts_audio = AudioSegment.from_file(wav_path)
+        bkg_music = AudioSegment.from_file(self.bkg_music_file)
+
+        # Adjust background music volume
+        bkg_music = bkg_music - (100 - self.bkg_music_volume)
+
+        # Generate a playlist with gaps
+        playlist = AudioSegment.silent(duration=self.min_gap)
+        while len(playlist) < len(tts_audio):
+            playlist += bkg_music
+            playlist += AudioSegment.silent(duration=random.randint(self.min_gap, self.max_gap))
+
+        # Trim or extend playlist to match TTS audio length
+        playlist = playlist[:len(tts_audio)]
+        combined_audio = tts_audio.overlay(playlist)
+
+        # Export the final audio
+        combined_audio.export(wav_path, format="wav")
+        logger.info(f"Background music added to {wav_path}")
 
     @staticmethod
     def validate_wav(wav_path):
