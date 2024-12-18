@@ -149,6 +149,7 @@ def add_to_queue():
         return render_template('error.html', title='ERROR', error="Filename is required.")
 
     file_path = os.path.join(app.config['PROCESSED_FOLDER'], filename)
+    overlay_path = os.path.join(app.config['OVERLAYS_FOLDER'], overlay) if overlay else None
 
     if not os.path.exists(file_path):
         return render_template('error.html', title='ERROR', error=f"File not found in processed directory: {file_path}")
