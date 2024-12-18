@@ -122,7 +122,7 @@ def generate_tts():
     filepath = os.path.join(PROCESSED_FOLDER, filename)
     overlay_path = os.path.join(app.config['OVERLAYS_FOLDER'], overlay) if overlay else None
     try:
-        tts_generator = TTSGenerator(file_path=filepath, author=author, title=title, model=model, overlay=overlay_path, overlay_volume=int(volume))
+        tts_generator = TTSGenerator(file_path=filepath, author=author, title=title, model=model, bkg_music_file=overlay_path, bkg_music_volume=int(volume))
         tts_generator.generate_wav()
         
         output_file = os.path.splitext(filepath)[0] + ".wav"
@@ -154,7 +154,7 @@ def add_to_queue():
         return render_template('error.html', title='ERROR', error=f"File not found in processed directory: {file_path}")
 
     try:
-        tts_task = TTSGenerator(file_path=file_path, author=author, title=title, model=model, overlay=overlay_path, overlay_volume=int(volume))
+        tts_task = TTSGenerator(file_path=file_path, author=author, title=title, model=model, bkg_music_file=overlay_path, bkg_music_volume=int(volume))
         tts_queue.put(tts_task)
         return render_template('success.html', title='SUCCESS', message="Task added to queue.")
     except Exception as e:
