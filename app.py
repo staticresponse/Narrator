@@ -104,8 +104,8 @@ def generate_tts():
     title = request.form.get('title', '').strip()
     author = request.form.get('author', '').strip()
     model = request.form.get('model', '').strip()
+    speaker_id = request.form.get('speaker_id', '').strip()
     overlay = request.form.get('overlay', '').strip()
-    volume = request.form.get('overlay_volume', '100').strip()
 
     if not filename or not os.path.exists(os.path.join(PROCESSED_FOLDER, filename)):
         return render_template('error.html', title='ERROR', error="Invalid or missing file.")
@@ -118,11 +118,14 @@ def generate_tts():
 
     if not model:
         return render_template('error.html', title='ERROR', error="Model selection is required.")
-
+    if not overlay:
+        enable_bkg_music = False
+    else:
+        enable_bkg_music = True
     filepath = os.path.join(PROCESSED_FOLDER, filename)
     overlay_path = os.path.join(app.config['OVERLAYS_FOLDER'], overlay) if overlay else None
     try:
-        tts_generator = TTSGenerator(file_path=filepath, author=author, title=title, model=model, bkg_music_file=overlay_path, bkg_music_volume=int(volume))
+        tts_generator = TTSGenerator(file_path=filepath, author=author, title=title, model=model, speaker_id=speaker_id, enable_bkg_music=enable_bkg_music, bkg_music_file=overlay_path)
         tts_generator.generate_wav()
         
         output_file = os.path.splitext(filepath)[0] + ".wav"
@@ -176,19 +179,22 @@ def generate_tts_all():
     title = request.form.get('title', '').strip()
     author = request.form.get('author', '').strip()
     model = request.form.get('model', '').strip()
+    overlay = request.form.get('overlay', '').strip()
+    volume = request.form.get('overlay_volume', '100').strip()
 
     if not title or not author or not model:
         return render_template('error.html', error="All fields are required.")
 
     files = os.listdir(PROCESSED_FOLDER)
     queued_files = []
+    overlay_path = os.path.join(app.config['OVERLAYS_FOLDER'], overlay) if overlay else None
 
     for filename in files:
         file_path = os.path.join(PROCESSED_FOLDER, filename)
         if not os.path.isfile(file_path):
             continue
 
-        tts_task = TTSGenerator(file_path=file_path, author=author, title=title, model=model)
+        tts_task = TTSGenerator(file_path=file_path, author=author, title=title, model=model, bkg_music_file=overlay_path, bkg_music_volume=int(volume))
         tts_queue.put(tts_task)
         queued_files.append(filename)
 

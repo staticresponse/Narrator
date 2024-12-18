@@ -12,6 +12,7 @@ from pydub import AudioSegment
 from pydub.silence import split_on_silence, detect_silence
 from nltk.tokenize import PunktSentenceTokenizer
 import logging
+import random
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -41,6 +42,8 @@ class TTSGenerator:
         self.max_gap = max_gap
         # Default model name
         default_model = "tts_models/en/ljspeech/glow-tts"
+        if self.bkg_music_file != None:
+            self.enable_bkg_music = True
 
         # Use the provided model name or default if not provided
         self.model = model if model else default_model
@@ -230,11 +233,13 @@ class TTSGenerator:
             logger.error(f"Background music file not found: {self.bkg_music_file}")
             return
 
+
         logger.info(f"Adding background music from {self.bkg_music_file} to {wav_path}")
 
         # Load the TTS audio and background music
         tts_audio = AudioSegment.from_file(wav_path)
         bkg_music = AudioSegment.from_file(self.bkg_music_file)
+        logger.debug(f"Background music length: {len(bkg_music)} ms")
 
         # Adjust background music volume
         bkg_music = bkg_music - (100 - self.bkg_music_volume)
