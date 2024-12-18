@@ -80,7 +80,7 @@ class TextIn:
             Generates a description to be added at the top of each chapter text file.
         '''
         description = (
-            f"Welcome to the Wizarding Wireless America channel. In this episode we will be reading {self.title} chapter {chapter_num - 2} by {self.author}. We have been making constant improvements to our model and reader capabilities. We hope you enjoy this episode. All credit for this work goes to {self.author}. Please see their work at the Archive of Our Own webpage" 
+            f"Welcome to the Wizarding Wireless America channel. In this episode we will be reading {self.title} chapter {chapter_num} by {self.author}. We have been making constant improvements to our model and reader capabilities. We hope you enjoy this episode. All credit for this work goes to {self.author}. Please see their work at the Archive of Our Own webpage" 
         )
         return description
 
