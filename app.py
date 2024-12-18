@@ -10,17 +10,19 @@ app = Flask(__name__)
 # Set upload folder and ensure it exists
 UPLOAD_FOLDER = 'uploads'
 PROCESSED_FOLDER = 'clean_text'
-AUDIO_FOLDER = 'audio'  # Folder for generated audio files
+AUDIO_FOLDER = 'audio'
 TXT_DONE_FOLDER = 'txt_done'
+OVERLAYS_FOLDER = 'overlays'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(PROCESSED_FOLDER, exist_ok=True)
 os.makedirs(AUDIO_FOLDER, exist_ok=True)
 os.makedirs(TXT_DONE_FOLDER, exist_ok=True)
-
+os.makedirs(OVERLAYS_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
 app.config['AUDIO_FOLDER'] = AUDIO_FOLDER
 app.config['TXT_DONE_FOLDER'] = TXT_DONE_FOLDER
+app.config['OVERLAYS_FOLDER'] = OVERLAYS_FOLDER
 
 # Welcome page
 @app.route('/')
@@ -93,8 +95,8 @@ def tts_form(filename):
         return render_template('error.html', title='ERROR', error="File Not Found.")
 
     models = ['tts_models/en/ljspeech/glow-tts','tts_models/en/multi-dataset/tortoise-v2','tts_models/en/ljspeech/overflow',"tts_models/en/vctk/vits"]  # Replace with actual models
-    
-    return render_template('tts_form.html', title='TTS request', filename=filename, models=models)
+    overlays = os.listdir(app.config['OVERLAYS_FOLDER'])
+    return render_template('tts_form.html', title='TTS request', filename=filename, models=models, overlays=overlays)
 
 @app.route('/generate-tts', methods=['POST'])
 def generate_tts():
@@ -102,10 +104,12 @@ def generate_tts():
     title = request.form.get('title', '').strip()
     author = request.form.get('author', '').strip()
     model = request.form.get('model', '').strip()
+    speaker_id = request.form.get('speaker_id', '').strip()
+    overlay = request.form.get('overlay', '').strip()
 
     if not filename or not os.path.exists(os.path.join(PROCESSED_FOLDER, filename)):
         return render_template('error.html', title='ERROR', error="Invalid or missing file.")
-
+    
     if not title:
         return render_template('error.html', title='ERROR', error="Title is required.")
 
@@ -114,11 +118,14 @@ def generate_tts():
 
     if not model:
         return render_template('error.html', title='ERROR', error="Model selection is required.")
-
+    if not overlay:
+        enable_bkg_music = False
+    else:
+        enable_bkg_music = True
     filepath = os.path.join(PROCESSED_FOLDER, filename)
-
+    overlay_path = os.path.join(app.config['OVERLAYS_FOLDER'], overlay) if overlay else None
     try:
-        tts_generator = TTSGenerator(file_path=filepath, author=author, title=title, model=model)
+        tts_generator = TTSGenerator(file_path=filepath, author=author, title=title, model=model, speaker_id=speaker_id, enable_bkg_music=enable_bkg_music, bkg_music_file=overlay_path)
         tts_generator.generate_wav()
         
         output_file = os.path.splitext(filepath)[0] + ".wav"
@@ -138,17 +145,20 @@ def add_to_queue():
     title = request.form.get('title', '').strip()
     author = request.form.get('author', '').strip()
     model = request.form.get('model', '').strip()
+    overlay = request.form.get('overlay', '').strip()
+    volume = request.form.get('overlay_volume', '100').strip()
 
     if not filename:
         return render_template('error.html', title='ERROR', error="Filename is required.")
 
     file_path = os.path.join(app.config['PROCESSED_FOLDER'], filename)
+    overlay_path = os.path.join(app.config['OVERLAYS_FOLDER'], overlay) if overlay else None
 
     if not os.path.exists(file_path):
         return render_template('error.html', title='ERROR', error=f"File not found in processed directory: {file_path}")
 
     try:
-        tts_task = TTSGenerator(file_path=file_path, author=author, title=title, model=model)
+        tts_task = TTSGenerator(file_path=file_path, author=author, title=title, model=model, bkg_music_file=overlay_path, bkg_music_volume=int(volume))
         tts_queue.put(tts_task)
         return render_template('success.html', title='SUCCESS', message="Task added to queue.")
     except Exception as e:
@@ -161,26 +171,30 @@ def tts_all_form():
     Render the form to queue TTS for all files.
     """
     available_models = ['tts_models/en/ljspeech/glow-tts','tts_models/en/multi-dataset/tortoise-v2','tts_models/en/ljspeech/overflow',"tts_models/en/vctk/vits"]
-    return render_template('tts_all_form.html', models=available_models)
+    overlays = os.listdir(app.config['OVERLAYS_FOLDER'])
+    return render_template('tts_all_form.html', models=available_models, overlays=overlays)
 
 @app.route('/generate-tts-all', methods=['POST'])
 def generate_tts_all():
     title = request.form.get('title', '').strip()
     author = request.form.get('author', '').strip()
     model = request.form.get('model', '').strip()
+    overlay = request.form.get('overlay', '').strip()
+    volume = request.form.get('overlay_volume', '100').strip()
 
     if not title or not author or not model:
         return render_template('error.html', error="All fields are required.")
 
     files = os.listdir(PROCESSED_FOLDER)
     queued_files = []
+    overlay_path = os.path.join(app.config['OVERLAYS_FOLDER'], overlay) if overlay else None
 
     for filename in files:
         file_path = os.path.join(PROCESSED_FOLDER, filename)
         if not os.path.isfile(file_path):
             continue
 
-        tts_task = TTSGenerator(file_path=file_path, author=author, title=title, model=model)
+        tts_task = TTSGenerator(file_path=file_path, author=author, title=title, model=model, bkg_music_file=overlay_path, bkg_music_volume=int(volume))
         tts_queue.put(tts_task)
         queued_files.append(filename)
 
@@ -217,6 +231,33 @@ def download_audio_file(filename):
         return jsonify({"error": "File not found."}), 404
     return send_from_directory(AUDIO_FOLDER, filename, as_attachment=True)
 
+@app.route('/upload-overlay', methods=['GET'])
+def upload_overlay_form():
+    """
+    Render the form to upload overlay audio files.
+    """
+    return render_template('upload_overlay.html', title='Upload Overlay Audio')
+
+@app.route('/process-overlay', methods=['POST'])
+def process_overlay():
+    """
+    Handle the upload of overlay audio files.
+    """
+    if 'file' not in request.files:
+        return render_template('error.html', title="ERROR", error="No file part in the request")
+
+    file = request.files['file']
+
+    if file.filename == '':
+        return render_template('error.html', title="ERROR", error="No selected file")
+
+    if not file.filename.endswith(('.mp3', '.wav')):  # Validate audio file extensions
+        return render_template('error.html', title="ERROR", error="Invalid file type. Only .mp3 and .wav files are supported.")
+
+    filepath = os.path.join(app.config['OVERLAYS_FOLDER'], file.filename)
+    file.save(filepath)
+
+    return redirect(url_for('welcome'))  # Redirect to the home route
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

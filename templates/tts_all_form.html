@@ -22,6 +22,18 @@
                     {% endfor %}
                 </select>
             </div>
+            <div class="mb-3">
+                <label for="speaker_id" class="form-label">Speaker ID</label>
+                <input type="text" id="speaker_id" name="speaker_id" class="form-control" placeholder="Enter speaker ID" required>
+            </div>
+            <div class="mb-3">
+                <label for="audio_overlay" class="form-label">Select Audio Overlay</label>
+                <select id="audio_overlay" name="audio_overlay" class="form-select" required>
+                    {% for overlay in overlays %}
+                        <option value="{{ overlay }}">{{ overlay }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
             <button type="submit" class="btn btn-success">Queue TTS for All Files</button>
         </form>

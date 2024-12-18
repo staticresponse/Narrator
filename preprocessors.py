@@ -56,7 +56,7 @@ class TextIn:
                 continue
 
             # Save each chapter to a separate text file with a description
-            self.save_chapter_to_file(i + 1, text)
+            self.save_chapter_to_file(i - 1, text)
             self.chapters_to_read.append(text)  # Append the processed chapter text
 
         if self.end == 999:
