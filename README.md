@@ -6,7 +6,7 @@
 
 ## 🚀 **Routes Overview**
 
-### 1. **Epoub Upload**
+### 1. **Epub Upload**
 - **Path:** `/upload`  
 - **Purpose:**  
   Allows users to upload an EPUB file to be processed.  
