@@ -34,8 +34,7 @@ def welcome():
 def upload_form():
     return render_template('upload.html',title='Epub Convertor')
 
-# File upload and processing route
-@app.route('/process', methods=['POST'])
+# File upload and processing route@app.route('/process', methods=['POST'])
 def process_file():
     if 'file' not in request.files:
         return render_template('error.html', title="ERROR", error="No file part in the request")
@@ -68,7 +67,10 @@ def process_file():
             title=title,
             author=author
         )
-        return render_template('success.html', title='SUCCESS', message="File processed successfully.", output_folder=PROCESSED_FOLDER)
+        processed_output = text_processor.process()
+        processed_file_path = os.path.join(app.config['PROCESSED_FOLDER'], os.path.basename(processed_output))
+        os.rename(processed_output, processed_file_path)
+        return render_template('success.html', title='SUCCESS', message="File processed successfully.", output_file=processed_file_path)
     except Exception as e:
         return render_template('error.html', title='ERROR', error=str(e))
 
