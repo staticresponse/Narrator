@@ -50,7 +50,7 @@ def process_file():
 
     title = request.form.get('title', '').strip()
     author = request.form.get('author', '').strip()
-    chunk - request.form.get('chapters_per_file', '1').strip() #Default to one-to-one
+    chunk = request.form.get('chapters_per_file', '1').strip() #Default to one-to-one
 
     if not title or not author:
         return render_template('error.html', title="ERROR", error="Both title and author fields are required.")
