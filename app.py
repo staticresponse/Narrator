@@ -50,7 +50,7 @@ def process_file():
 
     title = request.form.get('title', '').strip()
     author = request.form.get('author', '').strip()
-    chunk = request.form.get('chapters_per_file', '1').strip() #Default to one-to-one
+    chapters_per_file = int(request.form.get('chapters_per_file', '1').strip()) #Default to one-to-one
 
     if not title or not author:
         return render_template('error.html', title="ERROR", error="Both title and author fields are required.")
@@ -68,9 +68,8 @@ def process_file():
             customwords='custom_words.txt',
             title=title,
             author=author,
-            chapters_to_file=chunk
+            chapters_per_file=chapters_per_file
         )
-        processed_output = text_processor.process()
         processed_file_path = os.path.join(app.config['PROCESSED_FOLDER'], os.path.basename(processed_output))
         os.rename(processed_output, processed_file_path)
         return render_template('success.html', title='SUCCESS', message="File processed successfully.", output_file=processed_file_path)
