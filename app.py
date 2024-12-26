@@ -35,6 +35,7 @@ def upload_form():
     return render_template('upload.html',title='Epub Convertor')
 
 # File upload and processing route@app.route('/process', methods=['POST'])
+@app.route('/process', methods=['POST'])
 def process_file():
     if 'file' not in request.files:
         return render_template('error.html', title="ERROR", error="No file part in the request")
@@ -49,6 +50,7 @@ def process_file():
 
     title = request.form.get('title', '').strip()
     author = request.form.get('author', '').strip()
+    chunk - request.form.get('chapters_per_file', '1').strip() #Default to one-to-one
 
     if not title or not author:
         return render_template('error.html', title="ERROR", error="Both title and author fields are required.")
@@ -65,7 +67,8 @@ def process_file():
             debug=False,
             customwords='custom_words.txt',
             title=title,
-            author=author
+            author=author,
+            chapters_to_file=chunk
         )
         processed_output = text_processor.process()
         processed_file_path = os.path.join(app.config['PROCESSED_FOLDER'], os.path.basename(processed_output))
