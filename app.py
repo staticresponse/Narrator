@@ -34,7 +34,7 @@ def welcome():
 def upload_form():
     return render_template('upload.html',title='Epub Convertor')
 
-# File upload and processing route
+# File upload and processing route@app.route('/process', methods=['POST'])
 @app.route('/process', methods=['POST'])
 def process_file():
     if 'file' not in request.files:
@@ -50,6 +50,7 @@ def process_file():
 
     title = request.form.get('title', '').strip()
     author = request.form.get('author', '').strip()
+    chapters_per_file = int(request.form.get('chapters_per_file', '1').strip()) #Default to one-to-one
 
     if not title or not author:
         return render_template('error.html', title="ERROR", error="Both title and author fields are required.")
@@ -66,7 +67,8 @@ def process_file():
             debug=False,
             customwords='custom_words.txt',
             title=title,
-            author=author
+            author=author,
+            chapters_per_file=chapters_per_file
         )
         return render_template('success.html', title='SUCCESS', message="File processed successfully.", output_folder=PROCESSED_FOLDER)
     except Exception as e:

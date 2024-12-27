@@ -7,7 +7,7 @@ from ebooklib import epub
 import ebooklib
 
 class TextIn:
-    def __init__(self, source, start, end, skiplinks, debug, title, author, customwords="custom_words.txt"):
+    def __init__(self, source, start, end, skiplinks, debug, title, author, chapters_per_file=1, customwords="custom_words.txt"):
         self.source = source
         self.bookname = os.path.splitext(os.path.basename(source))[0]
         self.start = start - 1
@@ -16,6 +16,7 @@ class TextIn:
         self.debug = debug
         self.chapters = []
         self.chapters_to_read = []
+        self.chapters_per_file = chapters_per_file
         self.customwords = customwords
         self.title = title
         self.author = author
@@ -39,7 +40,7 @@ class TextIn:
     def get_chapters_epub(self):
         '''
             Class function for text processing
-            Dependency: chapt2text, prep_text, apply_customwords
+            Dependency: chap2text, prep_text, apply_customwords
             Packages required: ebooklib 
         '''
         for item in self.book.get_items():
@@ -47,6 +48,9 @@ class TextIn:
                 self.chapters.append(item.get_content())
 
         for i in range(len(self.chapters)):
+            if i <= 1:  # Skip chapters -1 and 0 (title and summary chapters)
+                continue
+
             # Process and clean the chapter text
             text = self.chap2text(self.chapters[i])
             text = self.prep_text(text)
@@ -55,33 +59,50 @@ class TextIn:
                 # Skip chapters too short to process
                 continue
 
-            # Save each chapter to a separate text file with a description
-            self.save_chapter_to_file(i - 1, text)
-            self.chapters_to_read.append(text)  # Append the processed chapter text
+            self.chapters_to_read.append((i, text))  # Append chapter number and text for later use
 
         if self.end == 999:
             self.end = len(self.chapters_to_read)
 
-    def save_chapter_to_file(self, chapter_num, text):
+        # Combine chapters into files based on chapters_per_file
+        self.save_combined_chapters()
+
+    def save_combined_chapters(self):
+        '''
+            Combines chapters and saves them to files.
+        '''
+        for i in range(0, len(self.chapters_to_read), self.chapters_per_file):
+            chunk = self.chapters_to_read[i:i + self.chapters_per_file]
+            start_chapter = chunk[0][0]
+            end_chapter = chunk[-1][0]
+            combined_text = "\n\n".join(chapter[1] for chapter in chunk)
+            self.save_chapter_to_file(start_chapter, end_chapter, combined_text)
+
+    def save_chapter_to_file(self, start_chapter, end_chapter, text):
         '''
             Saves the cleaned chapter text to a file in the clean_text directory with a description.
         '''
-        filename = os.path.join(self.clean_text_dir, f"{self.bookname}_chapter_{chapter_num}.txt")
+        filename = os.path.join(self.clean_text_dir, f"{self.bookname}_chapters_{start_chapter}_to_{end_chapter}.txt")
         
         # Add a description and save the file
-        description = self.add_description(chapter_num)
+        description = self.add_description(start_chapter, end_chapter)
         with open(filename, "w", encoding="utf-8") as f:
             f.write(description + "\n\n" + text)
         
-        print(f"Chapter {chapter_num} saved as {filename}.")
+        print(f"Chapters {start_chapter} to {end_chapter} saved as {filename}.")
 
-    def add_description(self, chapter_num):
+    def add_description(self, start_chapter, end_chapter):
         '''
             Generates a description to be added at the top of each chapter text file.
         '''
-        description = (
-            f"Welcome to the Wizarding Wireless America channel. In this episode we will be reading {self.title} chapter {chapter_num} by {self.author}. We have been making constant improvements to our model and reader capabilities. We hope you enjoy this episode. All credit for this work goes to {self.author}. Please see their work at the Archive of Our Own webpage" 
-        )
+        if start_chapter == end_chapter:
+            description = (
+                f"Welcome to the Wizarding Wireless America channel. In this episode we will be reading {self.title} chapter {start_chapter - 1} by {self.author}. We have been making constant improvements to our model and reader capabilities. We hope you enjoy this episode. All credit for this work goes to {self.author}. Please see their work at the Archive of Our Own webpage."
+            )
+        else:
+            description = (
+                f"Welcome to the Wizarding Wireless America channel. In this episode we will be reading {self.title} chapters {start_chapter - 1} to {end_chapter -1} by {self.author}. We have been making constant improvements to our model and reader capabilities. We hope you enjoy this episode. All credit for this work goes to {self.author}. Please see their work at the Archive of Our Own webpage."
+            )
         return description
 
     def apply_customwords(self, text):    
@@ -166,4 +187,3 @@ class TextIn:
                 word, pronunciation = line.strip().split('|', maxsplit=1)
                 pronunciation_dict[word.lower()] = pronunciation
         return pronunciation_dict
-    

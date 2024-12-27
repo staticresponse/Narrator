@@ -202,18 +202,15 @@ class TTSGenerator:
         """
         Move the processed text file and its generated audio file to their respective directories.
         """
-        # Directories for processed files
         txt_done_dir = "txt_done"
         audio_done_dir = "audio"
         os.makedirs(txt_done_dir, exist_ok=True)
         os.makedirs(audio_done_dir, exist_ok=True)
 
-        # Destination paths
         txt_destination_path = os.path.join(txt_done_dir, os.path.basename(self.file_path))
         audio_file = os.path.splitext(self.file_path)[0] + ".wav"
         audio_destination_path = os.path.join(audio_done_dir, os.path.basename(audio_file))
 
-        # Move text file
         if os.path.exists(self.file_path):
             try:
                 shutil.move(self.file_path, txt_destination_path)
@@ -221,7 +218,6 @@ class TTSGenerator:
             except Exception as e:
                 logger.error(f"Error while moving text file '{self.file_path}': {e}")
 
-        # Move audio file
         if os.path.exists(audio_file):
             try:
                 shutil.move(audio_file, audio_destination_path)
@@ -235,28 +231,19 @@ class TTSGenerator:
 
         logger.info(f"Adding background music from {self.bkg_music_file} to {wav_path}")
 
-        # Load the TTS audio and background music
-        tts_audio = AudioSegment.from_file(wav_path)
-        bkg_music = AudioSegment.from_file(self.bkg_music_file)
+        tts_audio = AudioSegment.from_file(wav_path).normalize()
+        bkg_music = AudioSegment.from_file(self.bkg_music_file).normalize()
 
-        # Normalize both audio tracks
-        tts_audio = tts_audio.normalize()
-        bkg_music = bkg_music.normalize()
+        bkg_music = bkg_music - (20 * (100 - self.bkg_music_volume) / 100)
 
-        # Adjust background music volume relative to TTS audio
-        bkg_music = bkg_music - 20 + (self.bkg_music_volume / 10.0)
-
-        # Generate a playlist with gaps
         playlist = AudioSegment.silent(duration=self.min_gap)
         while len(playlist) < len(tts_audio):
             playlist += bkg_music
             playlist += AudioSegment.silent(duration=random.randint(self.min_gap, self.max_gap))
 
-        # Trim or extend playlist to match TTS audio length
         playlist = playlist[:len(tts_audio)]
         combined_audio = tts_audio.overlay(playlist)
 
-        # Export the final audio
         combined_audio.export(wav_path, format="wav")
         logger.info(f"Background music added to {wav_path}")
 
