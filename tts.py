@@ -91,7 +91,48 @@ class TTSGenerator:
         logger.info(f"WAV file generated and saved at: {output_file}")
 
         self.move_processed_file()
+    def generate_xtts(self, output_file):
+        """
+        Under construction...
+        """
+        logger.info("XTTS Generation")
+        with open(self.file_path, "r", encoding="utf-8") as file:
+            text = file.read()
+        if self.speaker_id is None:
+            self.config['speaker_wav'] = 'default.wav' # Need a speaker.wav for the generation
+            logger.info("Speaker not set, defaulting to the default.wav training voice")
+        logger.info(f"Saving to {output_file}")
+        sentance_chunk_length = 1000
+        files = []
+        position = 0
+        start_time = time.time()
+        sentene_job_queue = []
+        chapter_job_queue = []
+        tempfiles = []
+        # initialize the tts engine
+        self.tts =  TTS(self.config['model_name'])
+        tokenizer = PunktSentenceTokenizer()        
+        sentences = tokenizer.tokenize(text)
+        sentences = [s for s in sentences if any(c.isalnum() for c in s)]
+        sentence_groups = list(self.combine_sentences(sentences, sentance_chunk_length))
+        self.config['language'] = 'en'
+        for x in range(len(sentence_groups)):
+            #skip if item is empty
+            if len(sentence_groups[x]) == 0:
+                continue
+            #skip if item has no characters or numbers
+            if not any(char.isalnum() for char in sentence_groups[x]):
+                continue
+            retries = 2
+            tempwav = "temp"+ "_" + str(x) + ".wav" # temp wavs of each sentence for future chunking
+            sentene_job_queue.append((sentence_groups[x], tempwav))
+            tempfiles.append(tempwav)
+        chapter_job_queue.append(({'config': self.config, 'tempfiles': tempfiles, 'sentene_job_queue': sentene_job_queue, 'output_file': output_file}))
 
+        logger.info("Initiating TTS Job for XTTS model")
+        for chapter in chapter_job_queue:
+            self.process_book_chapter(chapter)
+        
     def generate_vits(self, output_file):
         """
         Generate a WAV file using the VITS model with speaker_id.
