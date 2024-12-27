@@ -48,7 +48,7 @@ class TextIn:
                 self.chapters.append(item.get_content())
 
         for i in range(len(self.chapters)):
-            if i < 0:  # Skip chapters -1 and 0 (title and summary chapters)
+            if i <= 1:  # Skip chapters -1 and 0 (title and summary chapters)
                 continue
 
             # Process and clean the chapter text
@@ -97,11 +97,11 @@ class TextIn:
         '''
         if start_chapter == end_chapter:
             description = (
-                f"Welcome to the Wizarding Wireless America channel. In this episode we will be reading {self.title} chapter {start_chapter} by {self.author}. We have been making constant improvements to our model and reader capabilities. We hope you enjoy this episode. All credit for this work goes to {self.author}. Please see their work at the Archive of Our Own webpage."
+                f"Welcome to the Wizarding Wireless America channel. In this episode we will be reading {self.title} chapter {start_chapter - 1} by {self.author}. We have been making constant improvements to our model and reader capabilities. We hope you enjoy this episode. All credit for this work goes to {self.author}. Please see their work at the Archive of Our Own webpage."
             )
         else:
             description = (
-                f"Welcome to the Wizarding Wireless America channel. In this episode we will be reading {self.title} chapters {start_chapter} to {end_chapter} by {self.author}. We have been making constant improvements to our model and reader capabilities. We hope you enjoy this episode. All credit for this work goes to {self.author}. Please see their work at the Archive of Our Own webpage."
+                f"Welcome to the Wizarding Wireless America channel. In this episode we will be reading {self.title} chapters {start_chapter - 1} to {end_chapter -1} by {self.author}. We have been making constant improvements to our model and reader capabilities. We hope you enjoy this episode. All credit for this work goes to {self.author}. Please see their work at the Archive of Our Own webpage."
             )
         return description
 
