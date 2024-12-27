@@ -14,6 +14,12 @@
                 <label for="author" class="form-label">Author</label>
                 <input type="text" class="form-control" id="author" name="author" placeholder="Enter the author" required>
             </div>
+
+            <!-- Input field for chapters per file -->
+            <div class="mb-3">
+                <label for="chapters-per-file" class="form-label">Chapters per Episode</label>
+                <input type="number" class="form-control" id="chapters-per-file" name="chapters_per_file" placeholder="Enter a value between 1 and 8" min="1" max="8" required>
+            </div>
             
             <!-- Drag and drop container -->
             <div id="upload-container" class="upload-container">
@@ -36,6 +42,7 @@
         const form = document.getElementById('upload-form');
         const titleInput = document.getElementById('title');
         const authorInput = document.getElementById('author');
+        const chaptersInput = document.getElementById('chapters-per-file');
 
         // Add dragover and dragleave event listeners for styling
         container.addEventListener('dragover', (event) => {
@@ -53,9 +60,9 @@
             container.classList.remove('dragover');
             const files = event.dataTransfer.files;
             if (files.length > 0) {
-                // Validate title and author fields before submitting
-                if (!titleInput.value || !authorInput.value) {
-                    alert('Please fill out both the title and author fields before uploading.');
+                // Validate fields before submitting
+                if (!titleInput.value || !authorInput.value || !chaptersInput.value) {
+                    alert('Please fill out all fields before uploading.');
                     return;
                 }
                 
@@ -74,8 +81,8 @@
 
         // Submit the form when a file is selected via dialog
         fileInput.addEventListener('change', () => {
-            if (!titleInput.value || !authorInput.value) {
-                alert('Please fill out both the title and author fields before uploading.');
+            if (!titleInput.value || !authorInput.value || !chaptersInput.value) {
+                alert('Please fill out all fields before uploading.');
                 return;
             }
             form.submit();
