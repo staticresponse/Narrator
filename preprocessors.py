@@ -48,7 +48,7 @@ class TextIn:
                 self.chapters.append(item.get_content())
 
         for i in range(len(self.chapters)):
-            if i <= 0:  # Skip chapters -1 and 0 (title and summary chapters)
+            if i < 0:  # Skip chapters -1 and 0 (title and summary chapters)
                 continue
 
             # Process and clean the chapter text
