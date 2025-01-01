@@ -1,7 +1,8 @@
 # 📖 **Narrator**
 
 **Narrator** is a streamlined application for processing EPUB files into clean text, preparing them for TTS (Text-to-Speech) generation.
-
+---
+**Tips Welcomed** at https://www.buymeacoffee.com/staticresponse
 ---
 
 ## 🚀 **Routes Overview**
