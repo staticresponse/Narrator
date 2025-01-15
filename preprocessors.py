@@ -97,11 +97,11 @@ class TextIn:
         '''
         if start_chapter == end_chapter:
             description = (
-                f"Welcome to the Wizarding Wireless America channel. In this episode we will be reading {self.title} chapter {start_chapter - 1} by {self.author}. We have been making constant improvements to our model and reader capabilities. We hope you enjoy this episode. All credit for this work goes to {self.author}. Please see their work at the Archive of Our Own webpage."
+                f"Welcome to the Wizarding Wireless America channel. In this episode we will be reading {self.title} chapter {start_chapter - 1} by {self.author}. We hope you enjoy this episode. All credit for this work goes to {self.author}. Please see their work at the Archive of Our Own webpage."
             )
         else:
             description = (
-                f"Welcome to the Wizarding Wireless America channel. In this episode we will be reading {self.title} chapters {start_chapter - 1} to {end_chapter -1} by {self.author}. We have been making constant improvements to our model and reader capabilities. We hope you enjoy this episode. All credit for this work goes to {self.author}. Please see their work at the Archive of Our Own webpage."
+                f"Welcome to the Wizarding Wireless America channel. In this episode we will be reading {self.title} chapters {start_chapter - 1} to {end_chapter -1} by {self.author}. We hope you enjoy this episode. All credit for this work goes to {self.author}. Please see their work at the Archive of Our Own webpage."
             )
         return description
 
