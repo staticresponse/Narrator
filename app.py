@@ -261,5 +261,31 @@ def process_overlay():
 
     return redirect(url_for('welcome'))  # Redirect to the home route
 
+@app.route('/edit-text/<filename>', methods=['GET'])
+def edit_text(filename):
+    file_path = os.path.join(PROCESSED_FOLDER, filename)
+    
+    if not os.path.exists(file_path):
+        return render_template('error.html', title="ERROR", error="File not found.")
+
+    with open(file_path, 'r', encoding='utf-8') as f:
+        text_content = f.read()
+
+    return render_template('text_editor.html', title="Edit Text", filename=filename, text_content=text_content)
+@app.route('/save-text', methods=['POST'])
+def save_text():
+    filename = request.form.get('filename', '').strip()
+    edited_text = request.form.get('edited_text', '').strip()
+    
+    if not filename or not edited_text:
+        return jsonify({"error": "Missing filename or content"}), 400
+
+    file_path = os.path.join(TXT_DONE_FOLDER, filename)
+
+    with open(file_path, 'w', encoding='utf-8') as f:
+        f.write(edited_text)
+
+    return jsonify({"success": True, "message": "Text saved successfully!"})
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
