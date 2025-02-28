@@ -118,13 +118,26 @@ class TextIn:
         
         modified_text = re.sub(r'\b\w+\b', replace_word, text)
         return modified_text
-
+    def expand_abbreviations(self, text):
+        '''
+            Expands common abbreviations in text.
+        '''
+        text = re.sub(r'\bMr\.\s', 'Mister ', text)
+        text = re.sub(r'\bMrs\.\s', 'Missus ', text)
+        text = re.sub(r'\bMs\.\s', 'Miss ', text)
+        text = re.sub(r'\bSt\.\s', 'Saint ', text)
+        return text
+    
     def prep_text(self, text):
         '''
             Basic text cleaner for TTS operations
             Referenced by: get_chapters_epub
             Packages required: re
         '''
+        # Expand abbreviations
+        text = self.expand_abbreviations(text)
+    
+        # Additional replacements and cleanups
         text = text.replace("—", ", ").replace("--", ", ").replace(";", ", ").replace(":", ", ").replace("''", ", ")
         text = (
             text.replace("--", ", ")
@@ -151,6 +164,8 @@ class TextIn:
         allowed_chars = string.ascii_letters + string.digits + "-,.!?' "
         text = ''.join(c for c in text if c in allowed_chars)
         return text
+
+    
 
     def chap2text(self, chap):
         '''
