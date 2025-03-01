@@ -1,89 +1,63 @@
 <!doctype html>
 <html lang="en" data-bs-theme="dark">
-  <head>
-    <!-- Required meta tags -->
+<head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/upload.css') }}">
     <title>{{ title }}</title>
-        <style>
+    <style>
         .bin-container { display: flex; flex-wrap: wrap; gap: 10px; }
         .bin { width: 18%; padding: 10px; border: 1px solid #ddd; }
     </style>  
     <script>
-    // Hardcoded mapping of visible speaker names to specific speaker IDs
-    const speakers = {
-      "Narrator": "p364",
-      "Harry": "p307",
-      "Ron": "p236",
-      "Hermione": "p374",
-      "Draco": "p340",
-      "Luna": "p310",
-      "Ginny": "p341",
-      "Neville": "p330",
-      "Seamus": "p313",
-      "Dean": "p376",
-      "Lavendar": "p360",
-      "Cho":"p345",
-      "Sirius":"p301",
-      "Fred or George":"p302",
-      "Molly":"p329",
-      "Arthur":"p312",
-      "Umbridge":"p336",
-      "McGonagall":"p306",
-      "unassigned female":"p361",
-      "unassigned male":"p318"
+        var speakers = {{ speakers | tojson | default('{}') }};
 
-    };
+        function applySpeaker(speakerName) {
+            let selection = window.getSelection();
+            if (!selection.rangeCount) return;
+            let range = selection.getRangeAt(0);
+            let span = document.createElement("span");
+            span.classList.add("badge", "bg-primary", "me-1");
+            span.setAttribute("data-speaker", speakers[speakerName]);
+            span.textContent = speakerName + " (" + speakers[speakerName] + ")";
+            range.deleteContents();
+            range.insertNode(span);
+        }
 
-    // Wrap the selected text in a span that shows the speaker label and embeds the speaker_id as data attribute.
-    function applySpeaker(speakerName) {
-      let selection = window.getSelection();
-      if (!selection.rangeCount) return;
-      let range = selection.getRangeAt(0);
-      let span = document.createElement("span");
-      span.classList.add("badge", "bg-primary", "me-1");
-      span.setAttribute("data-speaker", speakers[speakerName]);
-      span.textContent = speakerName + " (" + speakers[speakerName] + ")";
-      range.deleteContents();
-      range.insertNode(span);
-    }
-
-    // Save the edited text back to the server using fetch.
-    function saveText() {
-      let content = document.getElementById("editor").innerHTML;
-      let formData = new FormData();
-      formData.append("filename", "{{ filename }}");
-      formData.append("edited_text", content);
-      fetch("/save-text", {
-        method: "POST",
-        body: formData
-      })
-      .then(response => response.json())
-      .then(data => alert(data.message))
-      .catch(error => console.error("Error:", error));
-    }
-  </script>
-        <style>
-            .speaker { font-weight: bold; }
-            .editor-container {
-                border: 1px solid #ccc;
-                padding: 15px;
-                border-radius: 5px;
-                background-color: #f8f9fa;
-                min-height: 200px;
-            }
-        </style>
-  </head>
-  <body>
-
+        function saveText() {
+            let content = document.getElementById("editor").innerHTML;
+            let formData = new FormData();
+            formData.append("filename", "{{ filename }}");
+            formData.append("edited_text", content);
+            fetch("/save-text", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => alert(data.message))
+            .catch(error => console.error("Error:", error));
+        }
+    </script>
+    <style>
+        .speaker { font-weight: bold; }
+        .editor-container {
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+            min-height: 200px;
+        }
+    </style>
+</head>
+<body>
 
 {% include 'navbar.html' %}
 
 {% block content %}
 {% endblock %}
-  </body>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="{{ url_for('static', filename='src/bootstrap.bundle.min.js') }}"></script>
+
+</body>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="{{ url_for('static', filename='src/bootstrap.bundle.min.js') }}"></script>
 </html>

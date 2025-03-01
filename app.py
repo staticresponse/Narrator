@@ -1,5 +1,6 @@
 from flask import Flask, request, render_template, jsonify, send_from_directory, redirect, url_for
 import os
+import json
 # CUSTOM MODULES
 from preprocessors import TextIn
 from tts import TTSGenerator, tts_queue
@@ -270,8 +271,32 @@ def edit_text(filename):
 
     with open(file_path, 'r', encoding='utf-8') as f:
         text_content = f.read()
+    
+    speakers = {
+      "Narrator": "p364",
+      "Harry": "p307",
+      "Ron": "p236",
+      "Hermione": "p374",
+      "Draco": "p340",
+      "Luna": "p310",
+      "Ginny": "p341",
+      "Neville": "p330",
+      "Seamus": "p313",
+      "Dean": "p376",
+      "Lavendar": "p360",
+      "Cho":"p345",
+      "Sirius":"p301",
+      "Fred or George":"p302",
+      "Molly":"p329",
+      "Arthur":"p312",
+      "Umbridge":"p336",
+      "McGonagall":"p306",
+      "unassigned female":"p361",
+      "unassigned male":"p318"
 
-    return render_template('text_editor.html', title="Edit Text", filename=filename, text_content=text_content)
+    }
+    print(json.dumps(speakers, indent=2))
+    return render_template('text_editor.html', title="Edit Text", filename=filename, text_content=text_content, speakers=speakers)
 @app.route('/save-text', methods=['POST'])
 def save_text():
     filename = request.form.get('filename', '').strip()
