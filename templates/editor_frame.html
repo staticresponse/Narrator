@@ -24,20 +24,36 @@
             range.deleteContents();
             range.insertNode(span);
         }
-
         function saveText() {
-            let content = document.getElementById("editor").innerHTML;
-            let formData = new FormData();
-            formData.append("filename", "{{ filename }}");
-            formData.append("edited_text", content);
-            fetch("/save-text", {
-                method: "POST",
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => alert(data.message))
-            .catch(error => console.error("Error:", error));
-        }
+        let editor = document.getElementById("editor");
+
+        // Step 1: Loop through child nodes to find unwrapped text nodes
+        let nodes = Array.from(editor.childNodes);
+        nodes.forEach(node => {
+            if (node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "") {
+                let span = document.createElement("span");
+                span.classList.add("badge", "bg-secondary", "me-1");
+                span.setAttribute("data-speaker", "p364");  // Narrator speaker ID
+                span.textContent = node.textContent;
+                node.replaceWith(span);
+            }
+        });
+
+        // Step 2: Collect and send updated content
+        let content = editor.innerHTML;
+        let formData = new FormData();
+        formData.append("filename", "{{ filename }}");
+        formData.append("edited_text", content);
+
+        fetch("/save-text", {
+            method: "POST",
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => alert(data.message))
+        .catch(error => console.error("Error:", error));
+    }
+
     </script>
     <style>
         .speaker { font-weight: bold; }
