@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template, jsonify, send_from_directory, redirect, url_for
 import os
 import json
+from bs4 import BeautifulSoup # for screenplay modules
 # CUSTOM MODULES
 from preprocessors import TextIn
 from tts import TTSGenerator, tts_queue
@@ -299,18 +300,38 @@ def edit_text(filename):
     return render_template('text_editor.html', title="Edit Text", filename=filename, text_content=text_content, speakers=speakers)
 @app.route('/save-text', methods=['POST'])
 def save_text():
-    filename = request.form.get('filename', '').strip()
-    edited_text = request.form.get('edited_text', '').strip()
-    
-    if not filename or not edited_text:
-        return jsonify({"error": "Missing filename or content"}), 400
+    filename = request.form.get('filename')
+    raw_html = request.form.get('edited_text')
 
-    file_path = os.path.join(TXT_DONE_FOLDER, filename)
+    if not filename or not raw_html:
+        return jsonify({"message": "Invalid data received"}), 400
 
-    with open(file_path, 'w', encoding='utf-8') as f:
-        f.write(edited_text)
+    # Parse HTML with BeautifulSoup
+    soup = BeautifulSoup(raw_html, "html.parser")
 
-    return jsonify({"success": True, "message": "Text saved successfully!"})
+    formatted_text = []
+    last_speaker = None
+
+    for span in soup.find_all("span", {"data-speaker": True}):
+        speaker_id = span["data-speaker"]
+        text = span.get_text(strip=True)
+
+        if speaker_id != last_speaker:
+            formatted_text.append(f"\n%{speaker_id}% {text}")
+        else:
+            formatted_text.append(f" {text}")
+
+        last_speaker = speaker_id
+
+    # Join lines and clean up spacing
+    final_output = "\n".join(line.strip() for line in formatted_text if line.strip())
+
+    # Save the processed text file
+    save_path = os.path.join(PROCESSED_FOLDER, filename)
+    with open(save_path, "w", encoding="utf-8") as f:
+        f.write(final_output)
+
+    return jsonify({"message": "Text saved successfully!"})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

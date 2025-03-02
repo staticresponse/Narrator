@@ -136,6 +136,7 @@ class TextIn:
         '''
         # Expand abbreviations
         text = self.expand_abbreviations(text)
+        text = text.replace('“', '\n').replace('”', '\n').replace('‘', '\n').replace('’', '\n')
     
         # Additional replacements and cleanups
         text = text.replace("—", ", ").replace("--", ", ").replace(";", ", ").replace(":", ", ").replace("''", ", ")
