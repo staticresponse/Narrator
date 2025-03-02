@@ -5,7 +5,7 @@ import sys
 from bs4 import BeautifulSoup
 from ebooklib import epub
 import ebooklib
-from datetime import datetime # for testing
+
 class TextIn:
     def __init__(self, source, start, end, skiplinks, debug, title, author, chapters_per_file=1, customwords="custom_words.txt"):
         self.source = source
