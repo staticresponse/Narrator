@@ -31,6 +31,12 @@ app.config['OVERLAYS_FOLDER'] = OVERLAYS_FOLDER
 def welcome():
     return render_template('index.html',title='TTS Generator Home')
 
+@app.route('/version', methods=['GET'])
+def get_version():
+    with open("version.json", "r") as f:
+        version_info = json.load(f)
+    return jsonify(version_info)
+
 # Drag-and-drop upload page
 @app.route('/upload', methods=['GET'])
 def upload_form():
