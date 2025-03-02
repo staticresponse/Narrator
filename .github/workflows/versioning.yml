@@ -1,0 +1,62 @@
+name: Versioning
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  update_version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up jq
+        run: sudo apt-get install jq
+
+      - name: Extract Changed Files
+        id: changed-files
+        run: echo "CHANGED_FILES=$(git diff --name-only HEAD~1)" >> $GITHUB_ENV
+
+      - name: Determine Branch Name
+        run: echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+
+      - name: Update Version
+        run: |
+          VERSION_FILE="version.json"
+
+          increment_version() {
+            FILE=$1
+            JSON_KEY=$2
+            if echo "$CHANGED_FILES" | grep -q "$FILE"; then
+              CURRENT_VERSION=$(jq -r ".\"$JSON_KEY\"" $VERSION_FILE)
+              IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+              
+              if [[ "$BRANCH_NAME" == *"feature"* ]]; then
+                ((MAJOR++)); MINOR=0; PATCH=0
+              elif [[ "$BRANCH_NAME" == *"enhancement"* ]]; then
+                ((MINOR++)); PATCH=0
+              else
+                ((PATCH++))
+              fi
+              
+              NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+              jq ".\"$JSON_KEY\" = \"$NEW_VERSION\"" $VERSION_FILE > tmp.json && mv tmp.json $VERSION_FILE
+            fi
+          }
+
+          increment_version "app.py" "App_version"
+          increment_version "preprocessor.py" "Preprocessor"
+          increment_version "tts.py" "TTS Engine"
+
+      - name: Commit and Push Changes
+        run: |
+          if ! git diff --quiet; then
+            git config --global user.email "github-actions@github.com"
+            git config --global user.name "GitHub Actions"
+            git add version.json
+            git commit -m "Auto-increment version [skip ci]"
+            git push
+          fi
