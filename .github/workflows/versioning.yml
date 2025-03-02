@@ -12,15 +12,23 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Ensure full commit history for proper diffing
 
       - name: Set up jq
         run: sudo apt-get install -y jq
 
+      - name: Fetch Latest Changes
+        run: |
+          git fetch --all
+          echo "Current branch: $(git rev-parse --abbrev-ref HEAD)"
+          git branch -a
+
       - name: Extract Changed Files
         run: |
-          git fetch origin dev
-          echo "CHANGED_FILES=$(git diff --name-only origin/dev..HEAD)" >> $GITHUB_ENV
+          CHANGED_FILES=$(git diff --name-only origin/dev HEAD)
           echo "Changed files: $CHANGED_FILES"
+          echo "CHANGED_FILES=$CHANGED_FILES" >> $GITHUB_ENV
 
       - name: Determine Branch Name
         run: |
