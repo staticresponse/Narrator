@@ -16,16 +16,21 @@ PROCESSED_FOLDER = 'clean_text'
 AUDIO_FOLDER = 'audio'
 TXT_DONE_FOLDER = 'txt_done'
 OVERLAYS_FOLDER = 'overlays'
+SCREENPLAY_FOLDER = 'screenplay_text'
+
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(PROCESSED_FOLDER, exist_ok=True)
 os.makedirs(AUDIO_FOLDER, exist_ok=True)
 os.makedirs(TXT_DONE_FOLDER, exist_ok=True)
 os.makedirs(OVERLAYS_FOLDER, exist_ok=True)
+os.makedirs(SCREENPLAY_FOLDER, exist_ok=True)
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
 app.config['AUDIO_FOLDER'] = AUDIO_FOLDER
 app.config['TXT_DONE_FOLDER'] = TXT_DONE_FOLDER
 app.config['OVERLAYS_FOLDER'] = OVERLAYS_FOLDER
+app.config['SCREENPLAY_FOLDER'] = SCREENPLAY_FOLDER
 
 # Welcome page
 @app.route('/')
@@ -334,7 +339,7 @@ def save_text():
     final_output = "\n".join(line.strip() for line in formatted_text if line.strip())
 
     # Save the processed text file
-    save_path = os.path.join(PROCESSED_FOLDER, filename)
+    save_path = os.path.join(SCREENPLAY_FOLDER, filename)
     with open(save_path, "w", encoding="utf-8") as f:
         f.write(final_output)
 
