@@ -29,7 +29,7 @@ app.config['OVERLAYS_FOLDER'] = OVERLAYS_FOLDER
 # Welcome page
 @app.route('/')
 def welcome():
-    return render_template('index.html',title='TTS Generator Homepage')
+    return render_template('index.html',title='TTS Generator Splash')
 
 @app.route('/version', methods=['GET'])
 def get_version():
