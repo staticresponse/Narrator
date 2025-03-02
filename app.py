@@ -344,6 +344,11 @@ def save_text():
         f.write(final_output)
 
     return jsonify({"message": "Text saved successfully!"})
-
+# Route to display available items in the clean_text directory
+@app.route('/screenplays', methods=['GET'])
+def available_screenplays():
+    files = os.listdir(SCREENPLAY_FOLDER)  # List files in the clean_text directory
+    files_with_index = list(enumerate(files))  # Create a list of (index, file) tuples
+    return render_template('available_screenplays.html', title='Text Inventory', files=files_with_index)
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
