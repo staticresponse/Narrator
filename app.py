@@ -1,5 +1,7 @@
 from flask import Flask, request, render_template, jsonify, send_from_directory, redirect, url_for
 import os
+import json
+from bs4 import BeautifulSoup # for screenplay modules
 # CUSTOM MODULES
 from preprocessors import TextIn
 from tts import TTSGenerator, tts_queue
@@ -28,6 +30,12 @@ app.config['OVERLAYS_FOLDER'] = OVERLAYS_FOLDER
 @app.route('/')
 def welcome():
     return render_template('index.html',title='TTS Generator Home')
+
+@app.route('/version', methods=['GET'])
+def get_version():
+    with open("version.json", "r") as f:
+        version_info = json.load(f)
+    return jsonify(version_info)
 
 # Drag-and-drop upload page
 @app.route('/upload', methods=['GET'])
@@ -260,6 +268,76 @@ def process_overlay():
     file.save(filepath)
 
     return redirect(url_for('welcome'))  # Redirect to the home route
+
+@app.route('/edit-text/<filename>', methods=['GET'])
+def edit_text(filename):
+    file_path = os.path.join(PROCESSED_FOLDER, filename)
+    
+    if not os.path.exists(file_path):
+        return render_template('error.html', title="ERROR", error="File not found.")
+
+    with open(file_path, 'r', encoding='utf-8') as f:
+        text_content = f.read()
+    
+    speakers = {
+      "Narrator": "p364",
+      "Harry": "p307",
+      "Ron": "p236",
+      "Hermione": "p374",
+      "Draco": "p340",
+      "Luna": "p310",
+      "Ginny": "p341",
+      "Neville": "p330",
+      "Seamus": "p313",
+      "Dean": "p376",
+      "Lavendar": "p360",
+      "Cho":"p345",
+      "Sirius":"p301",
+      "Fred or George":"p302",
+      "Molly":"p329",
+      "Arthur":"p312",
+      "Umbridge":"p336",
+      "McGonagall":"p306",
+      "unassigned female":"p361",
+      "unassigned male":"p318"
+
+    }
+    print(json.dumps(speakers, indent=2))
+    return render_template('text_editor.html', title="Edit Text", filename=filename, text_content=text_content, speakers=speakers)
+@app.route('/save-text', methods=['POST'])
+def save_text():
+    filename = request.form.get('filename')
+    raw_html = request.form.get('edited_text')
+
+    if not filename or not raw_html:
+        return jsonify({"message": "Invalid data received"}), 400
+
+    # Parse HTML with BeautifulSoup
+    soup = BeautifulSoup(raw_html, "html.parser")
+
+    formatted_text = []
+    last_speaker = None
+
+    for span in soup.find_all("span", {"data-speaker": True}):
+        speaker_id = span["data-speaker"]
+        text = span.get_text(strip=True)
+
+        if speaker_id != last_speaker:
+            formatted_text.append(f"\n%{speaker_id}% {text}")
+        else:
+            formatted_text.append(f" {text}")
+
+        last_speaker = speaker_id
+
+    # Join lines and clean up spacing
+    final_output = "\n".join(line.strip() for line in formatted_text if line.strip())
+
+    # Save the processed text file
+    save_path = os.path.join(PROCESSED_FOLDER, filename)
+    with open(save_path, "w", encoding="utf-8") as f:
+        f.write(final_output)
+
+    return jsonify({"message": "Text saved successfully!"})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

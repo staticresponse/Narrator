@@ -1,0 +1,49 @@
+stages:
+  - versioning
+  - test
+  - deploy
+
+update_version:
+  stage: versioning
+  script:
+    - VERSION_FILE="version.json"
+    - BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+    
+    # Extract changed files
+    - CHANGED_FILES=$(git diff --name-only HEAD~1)
+    
+    # Function to update version
+    - >
+      increment_version() {
+        FILE=$1
+        JSON_KEY=$2
+        if echo "$CHANGED_FILES" | grep -q "$FILE"; then
+          CURRENT_VERSION=$(jq -r ".\"$JSON_KEY\"" $VERSION_FILE)
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+          if [[ "$BRANCH_NAME" == *"feature"* ]]; then
+            ((MAJOR++)); MINOR=0; PATCH=0
+          elif [[ "$BRANCH_NAME" == *"enhancement"* ]]; then
+            ((MINOR++)); PATCH=0
+          else
+            ((PATCH++))
+          fi
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          jq ".\"$JSON_KEY\" = \"$NEW_VERSION\"" $VERSION_FILE > tmp.json && mv tmp.json $VERSION_FILE
+        fi
+      }
+
+    # Increment versions based on changes
+    - increment_version "app.py" "App_version"
+    - increment_version "preprocessor.py" "Preprocessor"
+    - increment_version "tts.py" "TTS Engine"
+
+    # Commit version update if there are changes
+    - if ! git diff --quiet; then
+        git config --global user.email "gitlab-ci@ci.com";
+        git config --global user.name "GitLab CI";
+        git add $VERSION_FILE;
+        git commit -m "Auto-increment version [skip ci]";
+        git push;
+      fi
+  only:
+    - dev
