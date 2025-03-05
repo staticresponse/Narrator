@@ -136,7 +136,7 @@ class TextIn:
 
         def replace_ordinal(match):
             number = int(match.group(1))  # Extract the numeric part
-            return p.number_to_words(number, ordinal=True)  # Convert to words
+            return p.ordinal(number)  # Use the ordinal method to convert
 
         text = re.sub(r'\b(\d+)(st|nd|rd|th)\b', replace_ordinal, text)
         return text
