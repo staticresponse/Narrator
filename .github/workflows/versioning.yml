@@ -45,6 +45,7 @@ jobs:
             FILE=$1
             JSON_KEY=$2
 
+            # Check if the file is part of the changes
             if echo "$CHANGED_FILES" | grep -q "$FILE"; then
               echo "Detected change in $FILE"
 
