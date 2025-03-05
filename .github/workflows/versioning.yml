@@ -27,7 +27,7 @@ jobs:
         id: changed-files
         run: |
           echo "Checking for file changes..."
-          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD || echo "first_commit")
+          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD -- app.py preprocessor.py tts.py || echo "first_commit")
           echo "Changed files: $CHANGED_FILES"
           echo "CHANGED_FILES=$CHANGED_FILES" >> $GITHUB_ENV
 
