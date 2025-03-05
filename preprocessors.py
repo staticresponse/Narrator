@@ -72,25 +72,28 @@ class TextIn:
         '''
             Combines chapters and saves them to files.
         '''
+        part_number = 1  # Start part numbering from 1
+
         for i in range(0, len(self.chapters_to_read), self.chapters_per_file):
             chunk = self.chapters_to_read[i:i + self.chapters_per_file]
             start_chapter = chunk[0][0]
             end_chapter = chunk[-1][0]
             combined_text = "\n\n".join(chapter[1] for chapter in chunk)
-            self.save_chapter_to_file(start_chapter, end_chapter, combined_text)
+            self.save_chapter_to_file(part_number, start_chapter, end_chapter, combined_text)
+            part_number += 1  # Increment part number
 
-    def save_chapter_to_file(self, start_chapter, end_chapter, text):
+    def save_chapter_to_file(self, part_number, start_chapter, end_chapter, text):
         '''
             Saves the cleaned chapter text to a file in the clean_text directory with a description.
         '''
-        filename = os.path.join(self.clean_text_dir, f"{self.bookname}_chapters_{start_chapter}_to_{end_chapter}.txt")
+        filename = os.path.join(self.clean_text_dir, f"{self.bookname}_part_{part_number}.txt")
         
         # Add a description and save the file
         description = self.add_description(start_chapter, end_chapter)
         with open(filename, "w", encoding="utf-8") as f:
             f.write(description + "\n\n" + text)
         
-        print(f"Chapters {start_chapter} to {end_chapter} saved as {filename}.")
+        print(f"Part {part_number} (Chapters {start_chapter} to {end_chapter}) saved as {filename}.")
 
     def add_description(self, start_chapter, end_chapter):
         '''
