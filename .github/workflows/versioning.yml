@@ -29,7 +29,7 @@ jobs:
       - name: Update Version
         run: |
           set -e  # Exit on error
-          
+
           VERSION_FILE="version.json"
           BRANCH_NAME="${{ github.ref_name }}"
 
@@ -52,11 +52,51 @@ jobs:
 
               echo "Current $JSON_KEY version: $CURRENT_VERSION"
 
-              IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION" || {
-                echo "Error: Failed to parse version '$CURRENT_VERSION'"
-                exit 1
-              }
+              IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
 
               if [[ "$BRANCH_NAME" == *"feature"* ]]; then
                 ((MAJOR++)); MINOR=0; PATCH=0
-                echo "Feature branch detected - incrementing MAJOR version and reset
+                echo "Feature branch detected - Incrementing MAJOR version"
+              elif [[ "$BRANCH_NAME" == *"enhancement"* ]]; then
+                ((MINOR++)); PATCH=0
+                echo "Enhancement branch detected - Incrementing MINOR version"
+              else
+                ((PATCH++))
+                echo "Default behavior - Incrementing PATCH version"
+              fi
+
+              NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+              echo "Updated $JSON_KEY version: $NEW_VERSION"
+
+              jq ".\"$JSON_KEY\" = \"$NEW_VERSION\"" $VERSION_FILE > tmp.json && mv tmp.json $VERSION_FILE
+            else
+              echo "No changes detected in $FILE, skipping version update for $JSON_KEY."
+            fi
+          }
+
+          # Always increment patch if pushed directly to dev
+          if [[ "$BRANCH_NAME" == "dev" ]]; then
+            echo "Direct push to dev - Forcing PATCH increment for all tracked files."
+            for KEY in "App_version" "Preprocessor" "TTS Engine"; do
+              CURRENT_VERSION=$(jq -r ".\"$KEY\"" $VERSION_FILE)
+              IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+              ((PATCH++))
+              NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+              jq ".\"$KEY\" = \"$NEW_VERSION\"" $VERSION_FILE > tmp.json && mv tmp.json $VERSION_FILE
+            done
+          else
+            increment_version "app.py" "App_version"
+            increment_version "preprocessor.py" "Preprocessor"
+            increment_version "tts.py" "TTS Engine"
+          fi
+
+      - name: Commit and Push Changes
+        run: |
+          if ! git diff --quiet; then
+            echo "Version changes detected, committing..."
+            git add version.json
+            git commit -m "Auto-increment version [skip ci]"
+            git push
+          else
+            echo "No version changes detected, skipping commit."
+          fi
