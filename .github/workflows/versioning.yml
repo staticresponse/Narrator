@@ -12,49 +12,34 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 2  # Ensures we can detect changes
 
-      - name: Set up Git
+      - name: Set up Git Authentication
         run: |
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
+          git config --global credential.helper store
+          echo "https://${{ secrets.GITHUB_TOKEN }}@github.com" > ~/.git-credentials
+          chmod 600 ~/.git-credentials
 
       - name: Determine Changed Files
         id: changed-files
         run: |
           echo "Checking for file changes..."
-          if git rev-parse HEAD^ >/dev/null 2>&1; then
-            CHANGED_FILES=$(git diff --name-only HEAD^ HEAD | tr '\n' ' ')
-          else
-            echo "First commit detected. Treating all files as changed."
-            CHANGED_FILES=$(git ls-files | tr '\n' ' ')
-          fi
+          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD || echo "first_commit")
           echo "Changed files: $CHANGED_FILES"
-          
-          # Store properly formatted changed files
           echo "CHANGED_FILES=$CHANGED_FILES" >> $GITHUB_ENV
 
       - name: Update Version
         run: |
           set -e  # Exit on error
-
+          
           VERSION_FILE="version.json"
-          BRANCH_NAME="${{ github.ref_name }}"
+          BRANCH_NAME="dev"
 
           echo "Processing version updates..."
           echo "Branch: $BRANCH_NAME"
-
-          # Verify JSON file exists
-          if [[ ! -f $VERSION_FILE ]]; then
-            echo "Error: $VERSION_FILE not found!"
-            exit 1
-          fi
-
-          # Ensure JSON is valid
-          if ! jq empty $VERSION_FILE >/dev/null 2>&1; then
-            echo "Error: $VERSION_FILE is not valid JSON!"
-            cat $VERSION_FILE
-            exit 1
-          fi
 
           increment_version() {
             FILE=$1
@@ -94,7 +79,7 @@ jobs:
             fi
           }
 
-          # Always increment patch if pushed directly to dev
+          # Always increment PATCH if pushed directly to dev
           if [[ "$BRANCH_NAME" == "dev" ]]; then
             echo "Direct push to dev - Forcing PATCH increment for all tracked files."
             for KEY in "App_version" "Preprocessor" "TTS Engine"; do
@@ -112,11 +97,8 @@ jobs:
 
       - name: Commit and Push Changes
         run: |
-          if ! git diff --quiet; then
-            echo "Version changes detected, committing..."
-            git add version.json
-            git commit -m "Auto-increment version [skip ci]"
-            git push
-          else
-            echo "No version changes detected, skipping commit."
-          fi
+          git add version.json
+          git commit -m "Auto-incremented version [skip ci]" || echo "No changes to commit"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
