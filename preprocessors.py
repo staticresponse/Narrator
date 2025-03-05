@@ -134,15 +134,19 @@ class TextIn:
     def expand_ordinals(self, text):
         '''
             Converts ordinal numbers (e.g., 3rd, 15th, 22nd) into their word equivalents.
+            Handles cases where there is an unintended space (e.g., "5 th" instead of "5th").
         '''
         p = inflect.engine()
 
         def replace_ordinal(match):
             number = int(match.group(1))  # Extract the numeric part
-            return p.ordinal(number)  # Use the ordinal method to convert
+            return p.ordinal(number)  # Convert number to words (e.g., "5th" -> "fifth")
 
-        text = re.sub(r'\b(\d+)(st|nd|rd|th)\b', replace_ordinal, text)
+        # Fix cases where there's a space between the number and ordinal suffix
+        text = re.sub(r'\b(\d+)\s*(st|nd|rd|th)\b', replace_ordinal, text)
+
         return text
+
     def prep_text(self, text):
         '''
             Basic text cleaner for TTS operations
