@@ -111,6 +111,7 @@ class TextIn:
 
     def apply_customwords(self, text):    
         '''
+            Uses custom pronunciation as provided by the configuration item custom_words.txt
             Referenced by get_chapters_epub
             Dependency: set_custom_dict
             Packages required: re
