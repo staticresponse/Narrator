@@ -97,7 +97,7 @@ class TextIn:
 
     def add_description(self, start_chapter, end_chapter):
         '''
-            Generates a description to be added at the top of each chapter text file.
+            Generates a description to be added at the top of each chapter text file. woo
         '''
         if start_chapter == end_chapter:
             description = (
