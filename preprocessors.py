@@ -183,7 +183,7 @@ class TextIn:
 
     def chap2text(self, chap):
         '''
-            Converts the XML structure of epubs to chapter text, ignoring text after "Chapter notes" within a div.
+            Converts the XML structure of epubs to chapter text, ignoring text after "Chapter notes" or "Chapter end notes" within a div.
             Referenced by get_chapters_epub
             Packages required: BeautifulSoup
         '''
@@ -207,8 +207,8 @@ class TextIn:
                 if t.parent.name in blacklist:
                     continue
 
-                # If we encounter "Chapter notes", stop processing the rest of this div
-                if "chapter notes" in t.lower():
+                # If we encounter "Chapter notes" or "Chapter end notes", stop processing the rest of this div
+                if any(phrase in t.lower() for phrase in ["chapter notes", "chapter end notes"]):
                     ignore_text = True
 
                 if not ignore_text:
@@ -217,6 +217,7 @@ class TextIn:
             output += '\n'  # Add spacing between divs for readability
 
         return output.strip()
+
       
 
     def set_custom_dict(self):
