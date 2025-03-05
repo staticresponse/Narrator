@@ -1,4 +1,4 @@
-name: Versioning for preprocessor.py
+name: Versioning - Preprocessor
 
 on:
   push:
@@ -26,32 +26,43 @@ jobs:
       - name: Determine Changed Files
         id: changed-files
         run: |
-          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD -- preprocessor.py)
+          echo "Checking for file changes..."
+          CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
           echo "Changed files: $CHANGED_FILES"
           echo "CHANGED_FILES=$CHANGED_FILES" >> $GITHUB_ENV
 
-      - name: Update Version for preprocessor.py
+      - name: Update Version
         run: |
-          VERSION_FILE="version.json"
-          BRANCH_NAME="dev"
-          FILE="preprocessor.py"
-          JSON_KEY="Preprocessor"
+          set -e  # Exit on error
           
-          # Check if the file is part of the changes
-          if echo "$CHANGED_FILES" | grep -q "$FILE"; then
-            CURRENT_VERSION=$(jq -r ".\"$JSON_KEY\"" $VERSION_FILE)
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-            ((MAJOR++))
-            MINOR=0
-            PATCH=0
-            NEW_VERSION="$MAJOR.$MINOR.$PATCH"
-            jq ".\"$JSON_KEY\" = \"$NEW_VERSION\"" $VERSION_FILE > tmp.json && mv tmp.json $VERSION_FILE
-          fi
+          VERSION_FILE="version.json"
+          BRANCH_NAME="${{ github.ref_name }}"
 
-      - name: Commit and Push Changes
-        run: |
-          git add version.json
-          git commit -m "Auto-incremented Preprocessor version [skip ci]" || echo "No changes to commit"
-          git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "Processing version updates..."
+          echo "Branch: $BRANCH_NAME"
+
+          increment_version() {
+            FILE=$1
+            JSON_KEY=$2
+
+            if echo "$CHANGED_FILES" | grep -q "$FILE"; then
+              echo "Detected change in $FILE"
+
+              CURRENT_VERSION=$(jq -r ".\"$JSON_KEY\"" $VERSION_FILE)
+
+              if [[ ! $CURRENT_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                echo "Error: Invalid version format for $JSON_KEY: '$CURRENT_VERSION'"
+                exit 1
+              fi
+
+              echo "Current $JSON_KEY version: $CURRENT_VERSION"
+
+              IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION" || {
+                echo "Error: Failed to parse version '$CURRENT_VERSION'"
+                exit 1
+              }
+
+              if [[ "$BRANCH_NAME" == *"feature"* ]]; then
+                ((MAJOR++)); MINOR=0; PATCH=0
+                echo "Feature branch detected - incrementing MAJOR version and resetting MINOR and PATCH to 0"
+              elif [[ "$BRANCH_NAME" == *"enhancement"
