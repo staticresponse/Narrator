@@ -5,6 +5,7 @@ import sys
 from bs4 import BeautifulSoup
 from ebooklib import epub
 import ebooklib
+import inflect
 
 class TextIn:
     def __init__(self, source, start, end, skiplinks, debug, title, author, chapters_per_file=1, customwords="custom_words.txt"):
@@ -127,7 +128,18 @@ class TextIn:
         text = re.sub(r'\bMs\.\s', 'Miss ', text)
         text = re.sub(r'\bSt\.\s', 'Saint ', text)
         return text
-    
+    def expand_ordinals(self, text):
+        '''
+            Converts ordinal numbers (e.g., 3rd, 15th, 22nd) into their word equivalents.
+        '''
+        p = inflect.engine()
+
+        def replace_ordinal(match):
+            number = int(match.group(1))  # Extract the numeric part
+            return p.number_to_words(number, ordinal=True)  # Convert to words
+
+        text = re.sub(r'\b(\d+)(st|nd|rd|th)\b', replace_ordinal, text)
+        return text
     def prep_text(self, text):
         '''
             Basic text cleaner for TTS operations
@@ -136,6 +148,7 @@ class TextIn:
         '''
         # Expand abbreviations
         text = self.expand_abbreviations(text)
+        text = self.expand_ordinals(text)
         text = text.replace('“', '\n').replace('”', '\n').replace('‘', '\n').replace('’', '\n')
     
         # Additional replacements and cleanups
