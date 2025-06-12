@@ -110,7 +110,7 @@ def tts_form(filename):
     if not os.path.exists(os.path.join(PROCESSED_FOLDER, filename)):
         return render_template('error.html', title='ERROR', error="File Not Found.")
 
-    models = ['tts_models/en/ljspeech/glow-tts','tts_models/en/multi-dataset/tortoise-v2','tts_models/en/ljspeech/overflow',"tts_models/en/vctk/vits"]  # Replace with actual models
+    models = ['tts_models/en/ljspeech/fast_pitch','tts_models/en/ljspeech/glow-tts','tts_models/en/multi-dataset/tortoise-v2','tts_models/en/ljspeech/overflow',"tts_models/en/vctk/vits"]  # Replace with actual models
     overlays = os.listdir(app.config['OVERLAYS_FOLDER'])
     return render_template('tts_form.html', title='TTS request', filename=filename, models=models, overlays=overlays)
 
@@ -186,7 +186,7 @@ def tts_all_form():
     """
     Render the form to queue TTS for all files.
     """
-    available_models = ['tts_models/en/ljspeech/glow-tts','tts_models/en/multi-dataset/tortoise-v2','tts_models/en/ljspeech/overflow',"tts_models/en/vctk/vits"]
+    available_models = ['tts_models/en/ljspeech/fast_pitch','tts_models/en/ljspeech/glow-tts','tts_models/en/multi-dataset/tortoise-v2','tts_models/en/ljspeech/overflow',"tts_models/en/vctk/vits"]
     overlays = os.listdir(app.config['OVERLAYS_FOLDER'])
     return render_template('tts_all_form.html', models=available_models, overlays=overlays)
 
