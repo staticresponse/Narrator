@@ -10,3 +10,5 @@ torch>=1.9.0
 numpy==1.21.6
 scipy==1.11.0
 inflect==7.0.0
+kokoro-tts==0.1.2
+soundfile

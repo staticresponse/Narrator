@@ -13,7 +13,8 @@ from pydub.silence import split_on_silence, detect_silence
 from nltk.tokenize import PunktSentenceTokenizer
 import logging #logging
 import random
-
+from kokoro import KPipeline    #kokoro tts
+import soundfile as sf          #kokoro tts
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -80,6 +81,10 @@ class TTSGenerator:
 
         if self.model == "tts_models/en/vctk/vits":
             self.generate_vits(output_file)
+        else if self.model == "kokoro":
+            with open(self.file_path, "r", encoding="utf-8") as f:
+            text = f.read()
+            generate_kokoro(text, output_file)
         else:
             self.generate_generic_tts(output_file)
 
@@ -91,6 +96,45 @@ class TTSGenerator:
         logger.info(f"WAV file generated and saved at: {output_file}")
 
         self.move_processed_file()
+
+    def generate_kokoro(self, output_file):
+        """
+        Generate a WAV file using the Kokoro model with per-sentence audio chunking.
+        """
+        
+
+        logger.info("Kokoro Generation")
+        with open(self.file_path, "r", encoding="utf-8") as file:
+            text = file.read()
+
+        sentance_chunk_length = 1000
+        files = []
+        tempfiles = []
+        sentene_job_queue = []
+        chapter_job_queue = []
+
+        tokenizer = PunktSentenceTokenizer()
+        sentences = tokenizer.tokenize(text)
+        sentences = [s for s in sentences if any(c.isalnum() for c in s)]
+
+        sentence_groups = list(self.combine_sentences(sentences, sentance_chunk_length))
+        for x, sentence in enumerate(sentence_groups):
+            if len(sentence) == 0 or not any(char.isalnum() for char in sentence):
+                continue
+            tempwav = f"temp_kokoro_{x}.wav"
+            sentene_job_queue.append((sentence, tempwav))
+            tempfiles.append(tempwav)
+
+        chapter_job_queue.append({
+            'config': {'voice': 'af_heart'},  # optionally support voice/lang_code override
+            'tempfiles': tempfiles,
+            'sentene_job_queue': sentene_job_queue,
+            'output_file': output_file
+        })
+
+        for chapter in chapter_job_queue:
+            self.process_kokoro_chapter(chapter)
+
 
     def generate_vits(self, output_file):
         """
@@ -174,6 +218,30 @@ class TTSGenerator:
 
         self.join_temp_files_to_chapter(dat['tempfiles'], dat['output_file'])
         logger.info(f"Done processing chapter for output file: {dat['output_file']}")
+        return dat['output_file']
+    def process_kokoro_chapter(self, dat):
+        logger.info(f"Initiating Kokoro chapter processing for output file: {dat['output_file']}")
+        pipeline = KPipeline(lang_code='a')  # Hardcoded for now; you could parametrize this
+
+        for text, file_name in dat['sentene_job_queue']:
+            retries = 2
+            while retries > 0:
+                try:
+                    generator = pipeline(text, voice=dat['config']['voice'])
+                    for _, _, audio in generator:
+                        sf.write(file_name, audio, 24000)
+                        logger.info(f"Generated Kokoro audio segment: {file_name}")
+                        break  # only first chunk (if chunked) per sentence
+                    break
+                except Exception as e:
+                    retries -= 1
+                    if retries == 0:
+                        logger.error(f"Failed to generate Kokoro audio for: {text}, error: {e}")
+                    else:
+                        logger.info(f"Retrying Kokoro synthesis for: {file_name}")
+
+        self.join_temp_files_to_chapter(dat['tempfiles'], dat['output_file'])
+        logger.info(f"Done processing Kokoro chapter: {dat['output_file']}")
         return dat['output_file']
 
     def join_temp_files_to_chapter(cls, tempfiles, output_file):
