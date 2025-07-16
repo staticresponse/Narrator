@@ -145,7 +145,7 @@ class KokoroGenerator(WAVGenerator):
     '''
     def generate_wav(self):
         pipeline = KPipeline(lang_code='a')
-        generator = pipeline(text=sent_tokenizer(),voice='bm_lewis',speed=1,split_pattern=r'\n+')
+        generator = pipeline(text=sent_tokenizer(),voice='bf_emma',speed=1,split_pattern=r'\n+')
         for i, (gs,ps,audio) in enumerate(generator):
             logger.info(f"index: {i}, text: {gs}, phonemes: {ps}")
             sf.write(f'temp{i}.wav',audio,24000)
