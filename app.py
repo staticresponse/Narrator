@@ -110,7 +110,7 @@ def tts_form(filename):
     if not os.path.exists(os.path.join(PROCESSED_FOLDER, filename)):
         return render_template('error.html', title='ERROR', error="File Not Found.")
 
-    models = ['tts_models/en/ljspeech/fast_pitch','tts_models/en/ljspeech/glow-tts','tts_models/en/multi-dataset/tortoise-v2','tts_models/en/ljspeech/overflow',"tts_models/en/vctk/vits"]  # Replace with actual models
+    models = ['kokoro']  # Replace with actual models
     overlays = os.listdir(app.config['OVERLAYS_FOLDER'])
     return render_template('tts_form.html', title='TTS request', filename=filename, models=models, overlays=overlays)
 
@@ -132,16 +132,10 @@ def generate_tts():
     if not author:
         return render_template('error.html', title='ERROR', error="Author is required.")
 
-    if not model:
-        return render_template('error.html', title='ERROR', error="Model selection is required.")
-    if not overlay:
-        enable_bkg_music = False
-    else:
-        enable_bkg_music = True
     filepath = os.path.join(PROCESSED_FOLDER, filename)
     overlay_path = os.path.join(app.config['OVERLAYS_FOLDER'], overlay) if overlay else None
     try:
-        tts_generator = TTSGenerator(file_path=filepath, author=author, title=title, model=model, speaker_id=speaker_id, enable_bkg_music=enable_bkg_music, bkg_music_file=overlay_path)
+        tts_generator = KokoroGenerator(file_path=filepath, author=author, title=title, model=config)
         tts_generator.generate_wav()
         
         output_file = os.path.splitext(filepath)[0] + ".wav"
@@ -174,7 +168,7 @@ def add_to_queue():
         return render_template('error.html', title='ERROR', error=f"File not found in processed directory: {file_path}")
 
     try:
-        tts_task = TTSGenerator(file_path=file_path, author=author, title=title, model=model, bkg_music_file=overlay_path, bkg_music_volume=int(volume))
+        tts_task = KokoroGenerator(file_path=file_path, author=author, title=title, model=model)
         tts_queue.put(tts_task)
         return render_template('success.html', title='SUCCESS', message="Task added to queue.")
     except Exception as e:
@@ -186,7 +180,7 @@ def tts_all_form():
     """
     Render the form to queue TTS for all files.
     """
-    available_models = ['tts_models/en/ljspeech/fast_pitch','tts_models/en/ljspeech/glow-tts','tts_models/en/multi-dataset/tortoise-v2','tts_models/en/ljspeech/overflow',"tts_models/en/vctk/vits"]
+    available_models = ['kokoro']
     overlays = os.listdir(app.config['OVERLAYS_FOLDER'])
     return render_template('tts_all_form.html', models=available_models, overlays=overlays)
 
@@ -196,7 +190,6 @@ def generate_tts_all():
     author = request.form.get('author', '').strip()
     model = request.form.get('model', '').strip()
     overlay = request.form.get('overlay', '').strip()
-    volume = request.form.get('overlay_volume', '100').strip()
 
     if not title or not author or not model:
         return render_template('error.html', error="All fields are required.")
@@ -210,13 +203,14 @@ def generate_tts_all():
         if not os.path.isfile(file_path):
             continue
 
-        tts_task = TTSGenerator(file_path=file_path, author=author, title=title, model=model, bkg_music_file=overlay_path, bkg_music_volume=int(volume))
+        tts_task = KokoroGenerator(file_path=file_path, author=author, title=title, model=model)
         tts_queue.put(tts_task)
         queued_files.append(filename)
 
     return render_template('success.html',  title='SUCCESS',
                            message=f"Queued {len(queued_files)} files for processing.",
                            details=queued_files)
+
 @app.route('/current-queue', methods=['GET'])
 def current_queue():
     """
@@ -275,80 +269,5 @@ def process_overlay():
 
     return redirect(url_for('welcome'))  # Redirect to the home route
 
-@app.route('/edit-text/<filename>', methods=['GET'])
-def edit_text(filename):
-    file_path = os.path.join(PROCESSED_FOLDER, filename)
-    
-    if not os.path.exists(file_path):
-        return render_template('error.html', title="ERROR", error="File not found.")
-
-    with open(file_path, 'r', encoding='utf-8') as f:
-        text_content = f.read()
-    
-    speakers = {
-      "Narrator": "p364",
-      "Harry": "p307",
-      "Ron": "p236",
-      "Hermione": "p374",
-      "Draco": "p340",
-      "Luna": "p310",
-      "Ginny": "p341",
-      "Neville": "p330",
-      "Seamus": "p313",
-      "Dean": "p376",
-      "Lavendar": "p360",
-      "Cho":"p345",
-      "Sirius":"p301",
-      "Fred or George":"p302",
-      "Molly":"p329",
-      "Arthur":"p312",
-      "Umbridge":"p336",
-      "McGonagall":"p306",
-      "unassigned female":"p361",
-      "unassigned male":"p318"
-
-    }
-    print(json.dumps(speakers, indent=2))
-    return render_template('text_editor.html', title="Edit Text", filename=filename, text_content=text_content, speakers=speakers)
-@app.route('/save-text', methods=['POST'])
-def save_text():
-    filename = request.form.get('filename')
-    raw_html = request.form.get('edited_text')
-
-    if not filename or not raw_html:
-        return jsonify({"message": "Invalid data received"}), 400
-
-    # Parse HTML with BeautifulSoup
-    soup = BeautifulSoup(raw_html, "html.parser")
-
-    formatted_text = []
-    last_speaker = None
-
-    for span in soup.find_all("span", {"data-speaker": True}):
-        speaker_id = span["data-speaker"]
-        text = span.get_text(strip=True)
-
-        if speaker_id != last_speaker:
-            formatted_text.append(f"\n%{speaker_id}% {text}")
-        else:
-            formatted_text.append(f" {text}")
-
-        last_speaker = speaker_id
-
-    # Join lines and clean up spacing
-    final_output = "\n".join(line.strip() for line in formatted_text if line.strip())
-
-    # Save the processed text file
-    save_path = os.path.join(SCREENPLAY_FOLDER, filename)
-    with open(save_path, "w", encoding="utf-8") as f:
-        f.write(final_output)
-
-    return jsonify({"message": "Text saved successfully!"})
-# Route to display available items in the clean_text directory
-@app.route('/screenplays', methods=['GET'])
-def available_screenplays():
-    files = os.listdir(SCREENPLAY_FOLDER)  # List files in the clean_text directory
-    files_with_index = list(enumerate(files))  # Create a list of (index, file) tuples
-    return render_template('available_screenplays.html', title='Text Inventory', files=files_with_index)
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
