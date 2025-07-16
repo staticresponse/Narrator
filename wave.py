@@ -4,20 +4,19 @@ import json
 import logging
 from datetime import datetime
 from typing import Dict, Any
+from queue import Queue
+from threading import Thread
 from mutagen.wave import WAVE
-import spaces
+from nltk.tokenize import PunktSentenceTokenizer
+import soundfile as sf
 
 from kokoro import KModel, KPipeline
-#import misaki   #Just in case we need custom phonemes at a later date
-import gradio as gr
-import random
-import torch
-
-
+# import misaki  # For custom phoneme support (optional)
 
 # Configure logger
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
+
 
 class WAVGenerator:
     def __init__(
@@ -31,7 +30,8 @@ class WAVGenerator:
         if "name" not in model:
             raise ValueError("Model config must contain a 'name' field.")
         if "sentence_chunk_length" not in model:
-            model['sentance_chunk_length'] == 1000 #default to 1000 chars if not specified
+            model["sentence_chunk_length"] = 1000  # default to 1000 chars if not specified
+
         self.file_path = file_path
         self.author = author
         self.title = title
@@ -44,39 +44,38 @@ class WAVGenerator:
             f"<WAVGenerator(title={self.title!r}, author={self.author!r}, "
             f"model={self.model.get('name')!r}, file_path={self.file_path!r}, created={self.creation_date!r})>"
         )
+
     def extract_text(self):
         with open(self.file_path, "r", encoding="utf-8") as file:
-            text = file.read()
-            return text
+            return file.read()
 
-    def combine_sentences(self, sentences, length=1000):
+    def combine_sentences(self, sentences, length=5000):
+        current_chunk = ""
         for sentence in sentences:
-            yield sentence
+            if len(current_chunk) + len(sentence) + 1 > length:
+                yield current_chunk.strip()
+                current_chunk = sentence
+            else:
+                current_chunk += " " + sentence
+        if current_chunk:
+            yield current_chunk.strip()
 
     def sent_tokenizer(self):
-        '''
-            If the TTS generator wants a list of sentences
-        '''
         text = self.extract_text()
         sentence_queue = []
         tokenizer = PunktSentenceTokenizer()
         sentences = tokenizer.tokenize(text)
         sentences = [s for s in sentences if any(c.isalnum() for c in s)]
-        sentence_groups = list(self.combine_sentences(sentences, model["sentence_chunk_length"]))
-        for x in range(len(sentence_groups)):
-            if len(sentence_groups[x]) == 0:
-                continue #skip if empty
-            if not any(char.isalnum() for char in sentence_groups[x]):
-                continue #skip if no chars or nums
-            tempwav = temp+"_"+str(x)+".wav" # temp wav for concatenator later
-            sentence_queue.append((sentence_groups[x],tempwav))
-        return sentence_queue #To be used by TTS Generation
 
+        sentence_groups = list(self.combine_sentences(sentences, self.model["sentence_chunk_length"]))
+        for i, chunk in enumerate(sentence_groups):
+            if not chunk.strip():
+                continue
+            tempwav = f"temp_{i}.wav"
+            sentence_queue.append((chunk, tempwav))
+        return sentence_groups
 
     def apply_metadata(self, chapter_number: int):
-        """
-        Apply metadata to the WAV file.
-        """
         try:
             audio = WAVE(self.file_path)
             audio["INAM"] = self.title
@@ -85,20 +84,12 @@ class WAVGenerator:
             audio["IGNR"] = self.subject
             audio["ITRK"] = str(chapter_number)
             audio["ICRD"] = self.creation_date
-            logger.debug(
-                f"Applying metadata to {self.file_path} -> "
-                f"INAM={self.title}, IPRD={self.title}, IART={self.author}, "
-                f"IGNR={self.subject}, ITRK={chapter_number}, ICRD={self.creation_date}"
-            )
             audio.save()
             logger.info(f"Metadata applied to {self.file_path}")
         except Exception as e:
             logger.error(f"Error applying metadata to {self.file_path}: {e}")
 
     def combine_temp_wavs(self, output_name: str, directory: str = ".", prefix: str = "temp_"):
-        """
-        Combine temp_n.wav files sequentially into a single WAV file and update self.file_path.
-        """
         wav_files = [
             f for f in os.listdir(directory)
             if f.startswith(prefix) and f.endswith(".wav") and f[len(prefix):-4].isdigit()
@@ -130,25 +121,56 @@ class WAVGenerator:
             self.file_path = output_path
             logger.info(f"Combined WAV saved to {output_path}")
 
-        except Exception as
+        except Exception as e:
+            logger.error(f"Error combining WAV files: {e}")
+
 
 class KokoroGenerator(WAVGenerator):
-    '''
-    'bf_emma',
-    'bf_isabella',      
-    'bf_alice',
-    'bf_lily',
-    '🇬🇧 🚹 George': 'bm_george',
-    '🇬🇧 🚹 Fable': 'bm_fable',
-    '🇬🇧 🚹 Lewis': 'bm_lewis',
-    '🇬🇧 🚹 Daniel': 'bm_daniel',
-    '''
+    """
+    Voices available (examples):
+    - 'bf_emma'
+    - 'bf_isabella' (narrator)
+    - 'bf_alice'
+    - 'bf_lily'
+    - 'bm_george'
+    - 'bm_fable'
+    - 'bm_lewis'
+    - 'bm_daniel'
+    """
     def generate_wav(self):
         pipeline = KPipeline(lang_code='a')
-        generator = pipeline(text=sent_tokenizer(),voice='bf_emma',speed=1,split_pattern=r'\n+')
-        for i, (gs,ps,audio) in enumerate(generator):
-            logger.info(f"index: {i}, text: {gs}, phonemes: {ps}")
-            sf.write(f'temp{i}.wav',audio,24000)
-    #combine_tem_wavs()#combine the temp wavs created above
-        
+        chunks = self.sent_tokenizer()
+        generator = pipeline(
+            text=chunks,
+            voice=self.model.get("name", "bf_emma"),
+            speed=1,
+            split_pattern=r'\n+'
+        )
 
+        for i, (gs, ps, audio) in enumerate(generator):
+            logger.info(f"index: {i}, text: {gs}, phonemes: {ps}")
+            sf.write(f'temp_{i}.wav', audio, 24000)
+
+        self.combine_temp_wavs(output_name=self.title.replace(" ", "_"))
+        self.apply_metadata(chapter_number=1)
+
+
+def process_queue(task_queue):
+    while True:
+        tts_task = task_queue.get()
+        try:
+            logger.info(f"Processing task for file: {tts_task.file_path}")
+            tts_task.generate_wav()
+        except Exception as e:
+            logger.error(f"Error processing task for file '{tts_task.file_path}': {e}")
+        finally:
+            task_queue.task_done()
+
+
+# Initialize the task queue
+tts_queue = Queue()
+
+# Start the worker thread to process tasks from the queue
+worker_thread = Thread(target=process_queue, args=(tts_queue,))
+worker_thread.daemon = True
+worker_thread.start()
