@@ -21,16 +21,8 @@
             </select>
         </div>
         <div class="mb-3">
-            <label for="speaker_id" class="form-label">Speaker ID</label>
-            <input type="text" id="speaker_id" name="speaker_id" class="form-control" placeholder="Enter speaker ID" required>
-        </div>
-        <div class="mb-3">
-            <label for="audio_overlay" class="form-label">Select Audio Overlay</label>
-            <select id="audio_overlay" name="audio_overlay" class="form-select" required>
-                {% for overlay in overlays %}
-                    <option value="{{ overlay }}">{{ overlay }}</option>
-                {% endfor %}
-            </select>
+            <label for="voice" class="form-label">Speaker ID</label>
+            <input type="text" id="voice" name="voice" class="form-control" placeholder="Enter speaker ID" required>
         </div>
         <div class="d-flex justify-content-between">
             <button type="submit" class="btn btn-success">Generate</button>

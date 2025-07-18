@@ -147,45 +147,51 @@ class TextIn:
         text = re.sub(r'\b(\d+)\s*(st|nd|rd|th)\b', replace_ordinal, text)
 
         return text
-
     def prep_text(self, text):
         '''
             Basic text cleaner for TTS operations
             Referenced by: get_chapters_epub
             Packages required: re
         '''
-        # Expand abbreviations
+        # Expand abbreviations and ordinals
         text = self.expand_abbreviations(text)
         text = self.expand_ordinals(text)
-        text = text.replace('“', '\n').replace('”', '\n').replace('‘', '\n').replace('’', '\n')
-    
-        # Additional replacements and cleanups
+
+        # Normalize curly apostrophes and quotes to plain
+        text = (
+            text.replace('’', "'")
+                .replace('‘', "'")
+                .replace('“', '"')
+                .replace('”', '"')
+        )
+
+        # Additional replacements and cleanup
         text = text.replace("—", ", ").replace("--", ", ").replace(";", ", ").replace(":", ", ").replace("''", ", ")
         text = (
-            text.replace("--", ", ")
-            .replace("—", ", ")
-            .replace(";", ", ")
-            .replace(":", ", ")
-            .replace("''", ", ")
-            .replace("’", "'")
-            .replace('“', '"')
-            .replace('”', '"')
-            .replace("◇", "")
-            .replace(" . . . ", ", ")
-            .replace("... ", ", ")
-            .replace("«", " ")
-            .replace("»", " ")
-            .replace("[", "")
-            .replace("]", "")
-            .replace("&", " and ")
-            .replace(" GNU ", " new ")
-            .replace("\n", " \n")
-            .replace("*", " ")
-            .strip()
+            text.replace("—", ", ")
+                .replace(";", ", ")
+                .replace(":", ", ")
+                .replace("''", ", ")
+                .replace("◇", "")
+                .replace(" . . . ", ", ")
+                .replace("... ", ", ")
+                .replace("«", " ")
+                .replace("»", " ")
+                .replace("[", "")
+                .replace("]", "")
+                .replace("&", " and ")
+                .replace(" GNU ", " new ")
+                .replace("\n", " \n")
+                .replace("*", " ")
+                .strip()
         )
+
+        # Remove characters not in allowed set
         allowed_chars = string.ascii_letters + string.digits + "-,.!?' "
         text = ''.join(c for c in text if c in allowed_chars)
+
         return text
+
 
     
 
