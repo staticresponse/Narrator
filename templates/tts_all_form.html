@@ -1,33 +1,61 @@
 {% extends 'frame.html' %}
 
 {% block content %}
-    <div class="container mt-5">
-        <h1 class="mb-4">Generate TTS for All Files</h1>
+<div class="container mt-5">
+    <h1 class="mb-4">Generate TTS for All Files</h1>
 
-        <!-- Form to select title, author, and model for all files -->
-        <form action="{{ url_for('generate_tts_all') }}" method="POST">
-            <div class="mb-3">
-                <label for="title" class="form-label">Title</label>
-                <input type="text" id="title" name="title" class="form-control" required>
-            </div>
-            <div class="mb-3">
-                <label for="author" class="form-label">Author</label>
-                <input type="text" id="author" name="author" class="form-control" required>
-            </div>
-            <div class="mb-3">
-                <label for="model" class="form-label">Model</label>
-                <select id="model" name="model" class="form-select" required>
-                    {% for model in models %}
-                        <option value="{{ model }}">{{ model.split('/')[-1].replace('-', ' ').capitalize() }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="mb-3">
-                <label for="voice" class="form-label">Voice</label>
-                <input type="text" id="voice" name="voice" class="form-control" placeholder="Enter speaker ID" required>
-            </div>
+    <!-- Form to select title, author, and model for all files -->
+    <form action="{{ url_for('generate_tts_all') }}" method="POST">
+        <div class="mb-3">
+            <label for="title" class="form-label">Title</label>
+            <input type="text" id="title" name="title" class="form-control" required>
+        </div>
 
-            <button type="submit" class="btn btn-success">Queue TTS for All Files</button>
-        </form>
-    </div>
+        <div class="mb-3">
+            <label for="author" class="form-label">Author</label>
+            <input type="text" id="author" name="author" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="model" class="form-label">Model</label>
+            <select id="model" name="model" class="form-select" required>
+                {% for model in models %}
+                    <option value="{{ model }}">{{ model.split('/')[-1].replace('-', ' ').capitalize() }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="voice" class="form-label">Voice</label>
+            <input type="text" id="voice" name="voice" class="form-control" placeholder="Enter speaker ID" required>
+        </div>
+
+        <!-- 🔽 Dynamic Key-Value Fields Section -->
+        <div id="extra-fields-container">
+            <label class="form-label">Extra Parameters</label>
+        </div>
+        <button type="button" class="btn btn-outline-secondary btn-sm mb-3" onclick="addExtraField()">+ Add Parameter</button>
+
+        <button type="submit" class="btn btn-success">Queue TTS for All Files</button>
+    </form>
+</div>
+
+<!-- JS for dynamic fields -->
+<script>
+function addExtraField() {
+    const container = document.getElementById('extra-fields-container');
+    const wrapper = document.createElement('div');
+    wrapper.classList.add('row', 'mb-2');
+
+    wrapper.innerHTML = `
+        <div class="col">
+            <input type="text" name="extra_keys[]" class="form-control" placeholder="Key">
+        </div>
+        <div class="col">
+            <input type="text" name="extra_values[]" class="form-control" placeholder="Value">
+        </div>
+    `;
+    container.appendChild(wrapper);
+}
+</script>
 {% endblock %}
