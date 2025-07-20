@@ -1,5 +1,11 @@
 {% extends 'frame.html' %}
 {% block content %}
-    <h1>Welcome to the EPUB Preprocessor.</h1>
-    <p>Thanks for downloading me. If you find me useful, please kick some money back to the developer. <a href="https://buymeacoffee.com/staticresponse">Tip StaticResponse</a></p>
+
+<div class="text-center my-5">
+    <img src="{{ url_for('static', filename='img/epub_logo.png') }}" alt="EPUB Preprocessor Logo" style="max-width: 150px;">
+    <h2 class="mt-3">Text-to-Speech Prep Made Simple</h2>
+    <p class="text-muted">Clean your EPUBs, assign speakers, and generate high-quality audio.</p>
+</div>
+
+
 {% endblock %}
