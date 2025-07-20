@@ -5,6 +5,9 @@
 **Tips Welcomed** at https://www.buymeacoffee.com/staticresponse
 ---
 
+## Current Model integrations
+- KokoroTTS
+
 ## 🚀 **Routes Overview**
 
 ### 1. **Epub Upload**
@@ -30,7 +33,8 @@
 - **Path:** `/cleaned`  
 - **Purpose:**  
   Displays a list of all cleaned text files, ready for TTS generation.  
-  - Provides a viewer-friendly table of available files.  
+  - Provides a viewer-friendly table of available files.
+  - Gateway to the tts generation via forms  
 
 ---
 
@@ -38,7 +42,8 @@
 - **Path:** `/text-archive`  
 - **Purpose:**  
   Displays a list of all cleaned text files that have had tts executed against it.  
-  - Provides a viewer-friendly table of available files.  
+  - Provides a viewer-friendly table of available files.
+  - You may run another tts generation here but it is not indended to be executed from this location.  
 
 ---
 
@@ -47,7 +52,8 @@
 - **Purpose:**  
   Displays a list of the final tts products.  
   - Provides a viewer-friendly table of available files. 
-  - Provides a button to download the wav from the container to local machine 
+  - Provides a button to download the wav from the container to local machine
+  - Provices a button to remove a wav from the container instance
 
 ---
 
@@ -56,13 +62,6 @@
 - **Purpose:**  
   Provides a list of things that hve been added to the tts queue.  
   - Provides a list of everything in the processing queue. 
-
----
-
-### 7. **Add Overlay**
-- **Path:** `/upload-overlay`
-- **Purpose:**  
-  Provides a way of adding music to the overlay lib. 
 
 ---
 

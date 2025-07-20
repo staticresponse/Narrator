@@ -140,6 +140,11 @@ def generate_tts():
         'voice': voice
     }
 
+    extra_keys = request.form.getlist('extra_keys[]')
+    extra_values = request.form.getlist('extra_values[]')
+    extra_args = {k: v for k, v in zip(extra_keys, extra_values) if k.strip()}
+    config.update(extra_args)
+
     try:
         # Create generator and run
         tts_generator = KokoroGenerator(config)
@@ -183,6 +188,10 @@ def add_to_queue():
             "subject": subject,
             "voice": voice
         }
+        extra_keys = request.form.getlist('extra_keys[]')
+        extra_values = request.form.getlist('extra_values[]')
+        extra_args = {k: v for k, v in zip(extra_keys, extra_values) if k.strip()}
+        config.update(extra_args)
 
         # Create TTS task and enqueue it
         tts_task = KokoroGenerator(config)
@@ -229,6 +238,10 @@ def generate_tts_all():
             "subject": subject,
             "voice": voice
         }
+        extra_keys = request.form.getlist('extra_keys[]')
+        extra_values = request.form.getlist('extra_values[]')
+        extra_args = {k: v for k, v in zip(extra_keys, extra_values) if k.strip()}
+        config.update(extra_args)
 
         try:
             tts_task = KokoroGenerator(config)
