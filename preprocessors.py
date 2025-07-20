@@ -147,17 +147,19 @@ class TextIn:
         text = re.sub(r'\b(\d+)\s*(st|nd|rd|th)\b', replace_ordinal, text)
 
         return text
+        
     def prep_text(self, text):
         '''
-            Basic text cleaner for TTS operations
-            Referenced by: get_chapters_epub
-            Packages required: re
+        Enhanced text cleaner for TTS operations.
+        - Expands abbreviations and ordinals
+        - Removes repeated chapter titles and summaries
+        - Applies paragraph formatting
         '''
-        # Expand abbreviations and ordinals
+        # --- Expand abbreviations and ordinals ---
         text = self.expand_abbreviations(text)
         text = self.expand_ordinals(text)
 
-        # Normalize curly apostrophes and quotes to plain
+        # --- Normalize smart quotes ---
         text = (
             text.replace('’', "'")
                 .replace('‘', "'")
@@ -165,14 +167,10 @@ class TextIn:
                 .replace('”', '"')
         )
 
-        # Additional replacements and cleanup
+        # --- Clean and replace punctuation ---
         text = text.replace("—", ", ").replace("--", ", ").replace(";", ", ").replace(":", ", ").replace("''", ", ")
         text = (
-            text.replace("—", ", ")
-                .replace(";", ", ")
-                .replace(":", ", ")
-                .replace("''", ", ")
-                .replace("◇", "")
+            text.replace("◇", "")
                 .replace(" . . . ", ", ")
                 .replace("... ", ", ")
                 .replace("«", " ")
@@ -181,16 +179,40 @@ class TextIn:
                 .replace("]", "")
                 .replace("&", " and ")
                 .replace(" GNU ", " new ")
-                .replace("\n", " \n")
                 .replace("*", " ")
                 .strip()
         )
 
-        # Remove characters not in allowed set
-        allowed_chars = string.ascii_letters + string.digits + "-,.!?' "
+        # --- Remove first line if it's the intro ---
+        lines = text.splitlines()
+        if lines and "Wizarding Wireless America" in lines[0]:
+            lines = lines[1:]  # Remove the intro line
+        text = "\n".join(lines)
+
+        # --- Remove duplicate title and chapter summary between ---
+        # Grab the first ~300 characters, split into lines/phrases, and look for a repeating sentence
+        head = text[:300]
+        candidates = [line.strip() for line in re.split(r'\n| {2,}', head) if line.strip()]
+
+        if len(candidates) >= 2:
+            first = candidates[0]
+            for later in candidates[1:4]:  # Only search the next few lines
+                if later.lower() == first.lower():
+                    # If we find a repeated phrase, keep everything after the second one
+                    second_idx = text.lower().find(later.lower(), text.lower().find(first.lower()) + len(first))
+                    if second_idx != -1:
+                        text = later + text[second_idx + len(later):]
+                    break
+
+        # --- Remove non-allowed characters ---
+        allowed_chars = string.ascii_letters + string.digits + "-,.!?' \n"
         text = ''.join(c for c in text if c in allowed_chars)
 
+        # --- Add paragraph breaks after sentence punctuation ---
+        text = re.sub(r'(?<=[.!?])\s+(?=[A-Z])', r'\n', text)
+
         return text
+
 
 
     
