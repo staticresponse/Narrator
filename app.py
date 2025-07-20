@@ -288,5 +288,29 @@ def download_audio_file(filename):
         return jsonify({"error": "File not found."}), 404
     return send_from_directory(AUDIO_FOLDER, filename, as_attachment=True)
 
+@app.route('/edit/<filename>', methods=['GET'])
+def edit_text(filename):
+    filepath = os.path.join(PROCESSED_FOLDER, filename)
+    if not os.path.exists(filepath):
+        return render_template('error.html', title='ERROR', error='File not found.')
+    
+    with open(filepath, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    return render_template('edit_text.html', title='Edit Text', filename=filename, content=content)
+
+@app.route('/save/<filename>', methods=['POST'])
+def save_text(filename):
+    filepath = os.path.join(PROCESSED_FOLDER, filename)
+    content = request.form.get('content', '')
+
+    try:
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return render_template('success.html', title='SUCCESS', message='File saved successfully.')
+    except Exception as e:
+        return render_template('error.html', title='ERROR', error=str(e))
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

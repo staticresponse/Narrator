@@ -1,0 +1,17 @@
+{% extends "frame.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Editing: <code>{{ filename }}</code></h1>
+
+    <form method="POST" action="{{ url_for('save_text', filename=filename) }}">
+        <div class="mb-3">
+            <label for="content" class="form-label">Text Content</label>
+            <textarea class="form-control" id="content" name="content" rows="25" style="font-family: monospace;">{{ content }}</textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a href="{{ url_for('available_items') }}" class="btn btn-secondary ms-2">Back to Cleaned Files</a>
+    </form>
+</div>
+{% endblock %}
