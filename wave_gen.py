@@ -90,15 +90,12 @@ class WAVGenerator:
     def combine_temp_wavs(self, output_name):
         """
         Combines temp_N.wav files into a single output WAV file.
-        Stops at the first missing temp_N.wav.
-        Ensures consistent audio parameters (ignores frame count).
         """
         logger.info("🔧 combine_temp_wavs started...")
 
         temp_files = []
         i = 0
 
-        # Collect all existing temp_N.wav files starting from 0
         while True:
             temp_file = f"temp_{i}.wav"
             if os.path.exists(temp_file):
@@ -113,7 +110,9 @@ class WAVGenerator:
             logger.error("❌ No temp WAV files found to combine.")
             return
 
-        output_filename = f"{output_name}.wav"
+        # Extract base name and keep part number if present
+        base_filename = os.path.splitext(os.path.basename(self.file_path))[0]  # e.g., A_Name_in_the_Ashes_part_1
+        output_filename = os.path.join("audio", f"{base_filename}.wav")
 
         try:
             with wave.open(temp_files[0], 'rb') as wf:
@@ -123,8 +122,6 @@ class WAVGenerator:
             for temp_file in temp_files[1:]:
                 with wave.open(temp_file, 'rb') as wf:
                     params = wf.getparams()
-
-                    # Only compare relevant audio format params (not nframes)
                     if (
                         params.nchannels != ref_params.nchannels or
                         params.sampwidth != ref_params.sampwidth or
@@ -139,6 +136,9 @@ class WAVGenerator:
 
                     frames.append(wf.readframes(wf.getnframes()))
 
+            # Ensure output folder exists
+            os.makedirs(os.path.dirname(output_filename), exist_ok=True)
+
             with wave.open(output_filename, 'wb') as wf:
                 wf.setparams(ref_params)
                 for f in frames:
@@ -149,6 +149,7 @@ class WAVGenerator:
         except Exception as e:
             logger.error(f"❌ Failed to combine WAV files: {e}")
             raise e
+
 class KokoroGenerator(WAVGenerator):
     def generate_wav(self):
         pipeline = KPipeline(lang_code='a')
