@@ -15,10 +15,21 @@
                 <input type="text" class="form-control" id="author" name="author" placeholder="Enter the author" required>
             </div>
 
-            <!-- Input field for chapters per file -->
             <div class="mb-3">
                 <label for="chapters-per-file" class="form-label">Chapters per Episode</label>
                 <input type="number" class="form-control" id="chapters-per-file" name="chapters_per_file" placeholder="Enter a value between 1 and 8" min="1" max="8" required>
+            </div>
+
+            <!-- Long text input for intro -->
+            <div class="mb-3">
+                <label for="intro" class="form-label">Intro Text</label>
+                <textarea class="form-control" id="intro" name="intro" rows="4" placeholder="Enter the introduction text..."></textarea>
+            </div>
+
+            <!-- Long text input for outtro -->
+            <div class="mb-3">
+                <label for="outtro" class="form-label">Outtro Text</label>
+                <textarea class="form-control" id="outtro" name="outtro" rows="4" placeholder="Enter the outtro text..."></textarea>
             </div>
             
             <!-- Drag and drop container -->
@@ -60,26 +71,19 @@
             container.classList.remove('dragover');
             const files = event.dataTransfer.files;
             if (files.length > 0) {
-                // Validate fields before submitting
                 if (!titleInput.value || !authorInput.value || !chaptersInput.value) {
                     alert('Please fill out all fields before uploading.');
                     return;
                 }
-                
-                // Append file to input
                 fileInput.files = files;
-                
-                // Programmatically submit the form
                 form.submit();
             }
         });
 
-        // Handle click event to trigger file dialog
         container.addEventListener('click', () => {
             fileInput.click();
         });
 
-        // Submit the form when a file is selected via dialog
         fileInput.addEventListener('change', () => {
             if (!titleInput.value || !authorInput.value || !chaptersInput.value) {
                 alert('Please fill out all fields before uploading.');
