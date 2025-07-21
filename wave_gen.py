@@ -145,6 +145,8 @@ class WAVGenerator:
                     wf.writeframes(f)
 
             logger.info(f"✅ Combined WAV saved as: {output_filename}")
+            for f in temp_files:
+                os.remove(f)
 
         except Exception as e:
             logger.error(f"❌ Failed to combine WAV files: {e}")
@@ -184,7 +186,7 @@ class KokoroGenerator(WAVGenerator):
                     raise e
 
         self.combine_temp_wavs(output_name=self.title.replace(" ", "_"))
-        self.apply_metadata(chapter_number=1)
+        #self.apply_metadata(chapter_number=1)
 
 
 def process_queue(task_queue):

@@ -6,9 +6,13 @@ from bs4 import BeautifulSoup
 from ebooklib import epub
 import ebooklib
 import inflect
+import logging
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 class TextIn:
-    def __init__(self, source, start, end, skiplinks, debug, title, author, chapters_per_file=1, customwords="custom_words.txt"):
+    def __init__(self, source, start, end, skiplinks, debug, title, author, chapters_per_file=1, customwords="custom_words.txt", intro="", outtro=""):
+
         self.source = source
         self.bookname = os.path.splitext(os.path.basename(source))[0]
         self.start = start - 1
@@ -22,11 +26,12 @@ class TextIn:
         self.title = title
         self.author = author
         self.pronunciation = self.set_custom_dict()
-
         # Automatically create the clean_text directory
         self.clean_text_dir = "clean_text"
         os.makedirs(self.clean_text_dir, exist_ok=True)
-        
+        self.intro = intro
+        self.outtro = outtro
+        logger.info(f"Initialized TextIn with source: {source}, chapters {start} to {end}")        
         # Set up the source and automatically process chapters if EPUB
         if source.endswith('.epub'):
             self.book = epub.read_epub(source)
@@ -88,26 +93,9 @@ class TextIn:
         '''
         filename = os.path.join(self.clean_text_dir, f"{self.bookname}_part_{part_number}.txt")
         
-        # Add a description and save the file
-        description = self.add_description(start_chapter, end_chapter)
         with open(filename, "w", encoding="utf-8") as f:
-            f.write(description + "\n\n" + text)
-        
-        print(f"Part {part_number} (Chapters {start_chapter} to {end_chapter}) saved as {filename}.")
-
-    def add_description(self, start_chapter, end_chapter):
-        '''
-            Generates the description to be added at the top of each chapter text file.
-        '''
-        if start_chapter == end_chapter:
-            description = (
-                f"Welcome to the Wizarding Wireless America channel. In this episode we will be reading {self.title} chapter {start_chapter - 1} by {self.author}. All credit for this work goes to {self.author}. Please see their work at the Archive of Our Own webpage."
-            )
-        else:
-            description = (
-                f"Welcome to the Wizarding Wireless America channel. In this episode we will be reading {self.title} chapters {start_chapter - 1} to {end_chapter -1} by {self.author}. All credit for this work goes to {self.author}. Please see their work at the Archive of Our Own webpage."
-            )
-        return description
+            f.write(self.intro + "\n\n" + text + "\n" + self.outtro)
+        logger.info(f"Part {part_number} (Chapters {start_chapter} to {end_chapter}) saved as {filename}.")
 
     def apply_customwords(self, text):    
         '''

@@ -58,7 +58,9 @@ def process_file():
 
     title = request.form.get('title', '').strip()
     author = request.form.get('author', '').strip()
-    chapters_per_file = int(request.form.get('chapters_per_file', '1').strip()) #Default to one-to-one
+    intro = request.form.get('intro', '').strip()
+    outtro = request.form.get('outtro', '').strip()
+    chapters_per_file = int(request.form.get('chapters_per_file', '1').strip())
 
     if not title or not author:
         return render_template('error.html', title="ERROR", error="Both title and author fields are required.")
@@ -76,7 +78,9 @@ def process_file():
             customwords='custom_words.txt',
             title=title,
             author=author,
-            chapters_per_file=chapters_per_file
+            chapters_per_file=chapters_per_file,
+            intro=intro,       # Pass intro
+            outtro=outtro      # Pass outtro
         )
         return render_template('success.html', title='SUCCESS', message="File processed successfully.", output_folder=PROCESSED_FOLDER)
     except Exception as e:
