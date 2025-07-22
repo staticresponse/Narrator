@@ -2,7 +2,7 @@ from flask import Flask, request, render_template, jsonify, send_from_directory,
 import os
 import json
 import datetime #unused
-from bs4 import BeautifulSoup # for screenplay modules
+from bs4 import BeautifulSoup
 from werkzeug.utils import secure_filename
 # CUSTOM MODULES
 from preprocessors import TextIn
@@ -27,7 +27,6 @@ app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
 app.config['AUDIO_FOLDER'] = AUDIO_FOLDER
 app.config['TXT_DONE_FOLDER'] = TXT_DONE_FOLDER
 
-# Welcome page
 @app.route('/', methods=['GET', 'POST'])
 def welcome():
     voices = {
@@ -70,7 +69,6 @@ def welcome():
     # GET method - show form
     return render_template('index.html', title='TTS Generator', voices=voices)
     
-
 @app.route('/version', methods=['GET'])
 def get_version():
     with open("version.json", "r") as f:
@@ -331,6 +329,15 @@ def download_audio_file(filename):
     if not os.path.exists(os.path.join(AUDIO_FOLDER, filename)):
         return jsonify({"error": "File not found."}), 404
     return send_from_directory(AUDIO_FOLDER, filename, as_attachment=True)
+    
+@app.route('/audio/play/<filename>', methods=['GET'])
+def play_audio_file(filename):
+    # Ensure the file exists in the audio folder
+    if not os.path.exists(os.path.join(AUDIO_FOLDER, filename)):
+        return jsonify({"error": "File not found."}), 404
+    # Serve the file inline without forcing a download
+    return send_from_directory(AUDIO_FOLDER, filename)
+
 
 @app.route('/edit/<filename>', methods=['GET'])
 def edit_text(filename):
