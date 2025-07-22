@@ -45,33 +45,41 @@ class TextIn:
 
     def get_chapters_epub(self):
         '''
-            Class function for text processing
-            Dependency: chap2text, prep_text, apply_customwords
-            Packages required: ebooklib 
+        Class function for extracting and processing chapters from EPUB in correct reading order.
         '''
-        for item in self.book.get_items():
-            if item.get_type() == ebooklib.ITEM_DOCUMENT:
-                self.chapters.append(item.get_content())
-
-        for i in range(len(self.chapters)):
-            if i <= 1:  # Skip chapters -1 and 0 (title and summary chapters)
+        # Ensure we respect reading order
+        item_map = {item.get_id(): item for item in self.book.get_items_of_type(ebooklib.ITEM_DOCUMENT)}
+        ordered_ids = [item[0] for item in self.book.spine]
+        
+        chapter_num = 1
+        for uid in ordered_ids:
+            if uid not in item_map:
                 continue
-
-            # Process and clean the chapter text
-            text = self.chap2text(self.chapters[i])
+            
+            content = item_map[uid].get_content()
+            text = self.chap2text(content)
             text = self.prep_text(text)
             text = self.apply_customwords(text)
+
             if len(text) < 150:
-                # Skip chapters too short to process
                 continue
 
-            self.chapters_to_read.append((i, text))  # Append chapter number and text for later use
+            if chapter_num - 1 < self.start or chapter_num > self.end:
+                chapter_num += 1
+                continue
+
+            self.chapters_to_read.append((chapter_num, text))
+
+            if self.debug:
+                logger.info(f"Chapter {chapter_num} length: {len(text)}")
+
+            chapter_num += 1
 
         if self.end == 999:
-            self.end = len(self.chapters_to_read)
+            self.end = chapter_num - 1
 
-        # Combine chapters into files based on chapters_per_file
         self.save_combined_chapters()
+
 
     def save_combined_chapters(self):
         '''
@@ -177,21 +185,6 @@ class TextIn:
             lines = lines[1:]  # Remove the intro line
         text = "\n".join(lines)
 
-        # --- Remove duplicate title and chapter summary between ---
-        # Grab the first ~300 characters, split into lines/phrases, and look for a repeating sentence
-        head = text[:300]
-        candidates = [line.strip() for line in re.split(r'\n| {2,}', head) if line.strip()]
-
-        if len(candidates) >= 2:
-            first = candidates[0]
-            for later in candidates[1:4]:  # Only search the next few lines
-                if later.lower() == first.lower():
-                    # If we find a repeated phrase, keep everything after the second one
-                    second_idx = text.lower().find(later.lower(), text.lower().find(first.lower()) + len(first))
-                    if second_idx != -1:
-                        text = later + text[second_idx + len(later):]
-                    break
-
         # --- Remove non-allowed characters ---
         allowed_chars = string.ascii_letters + string.digits + "-,.!?' \n"
         text = ''.join(c for c in text if c in allowed_chars)
@@ -207,40 +200,38 @@ class TextIn:
 
     def chap2text(self, chap):
         '''
-            Converts the XML structure of epubs to chapter text, ignoring text after "Chapter notes" or "Chapter end notes" within a div.
-            Referenced by get_chapters_epub
-            Packages required: BeautifulSoup
+        Extracts and flattens visible text from a chapter.
+        Fixes broken line breaks in the middle of sentences.
         '''
-        blacklist = ['[document]', 'noscript', 'header', 'html', 'meta', 'head', 'input', 'script']
-        output = ''
         soup = BeautifulSoup(chap, 'html.parser')
+        blacklist = ['[document]', 'noscript', 'header', 'html', 'meta', 'head', 'input', 'script', 'style']
 
         if self.skiplinks:
-            for a in soup.findAll('a', href=True):
+            for a in soup.find_all('a', href=True):
                 a.extract()
 
-        for a in soup.findAll('a', href=True):
-            if a.text.isdigit():
+        # Remove footnote-style anchors (digits only)
+        for a in soup.find_all('a', href=True):
+            if a.text.strip().isdigit():
                 a.extract()
-        
-        # Process each <div> separately
-        for div in soup.find_all('div'):
-            ignore_text = False  # Reset flag for each new div
 
-            for t in div.find_all(string=True):
-                if t.parent.name in blacklist:
-                    continue
+        # Extract visible strings
+        texts = []
+        for tag in soup.find_all(text=True):
+            if tag.parent.name in blacklist:
+                continue
+            txt = tag.strip()
+            if txt:
+                texts.append(txt)
 
-                # If we encounter "Chapter notes" or "Chapter end notes", stop processing the rest of this div
-                if any(phrase in t.lower() for phrase in ["chapter notes", "chapter end notes"]):
-                    ignore_text = True
+        # Join all the visible text parts
+        output = ' '.join(texts)
 
-                if not ignore_text:
-                    output += '{} '.format(t)
-
-            output += '\n'  # Add spacing between divs for readability
+        # Normalize whitespace: collapse multiple spaces, fix artificial newlines
+        output = re.sub(r'\s+', ' ', output)
 
         return output.strip()
+
 
       
 
@@ -255,3 +246,5 @@ class TextIn:
                 word, pronunciation = line.strip().split('|', maxsplit=1)
                 pronunciation_dict[word.lower()] = pronunciation
         return pronunciation_dict
+
+    def apply_phonemes (self):

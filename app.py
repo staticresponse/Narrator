@@ -1,8 +1,9 @@
-from flask import Flask, request, render_template, jsonify, send_from_directory, redirect, url_for
+from flask import Flask, request, render_template, jsonify, send_from_directory, redirect, url_for, flash
 import os
 import json
 import datetime #unused
-from bs4 import BeautifulSoup # for screenplay modules
+from bs4 import BeautifulSoup
+from werkzeug.utils import secure_filename
 # CUSTOM MODULES
 from preprocessors import TextIn
 from wave_gen import KokoroGenerator, tts_queue
@@ -26,11 +27,54 @@ app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
 app.config['AUDIO_FOLDER'] = AUDIO_FOLDER
 app.config['TXT_DONE_FOLDER'] = TXT_DONE_FOLDER
 
-# Welcome page
-@app.route('/')
-def welcome():
-    return render_template('index.html',title='TTS Generator')
+app.secret_key = os.environ.get('FLASK_SECRET_KEY')
 
+if not app.secret_key:
+    print ("Key not set. Using dummy value for testing")
+    app.secret_key = "testing"
+
+@app.route('/', methods=['GET', 'POST'])
+def welcome():
+    voices = {
+        "af_bella": "American Bella",
+        "bf_emma": "British Emma"
+    }
+
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        author = request.form.get('author', '').strip()
+        model = request.form.get('model', '').strip()
+        voice = request.form.get('voice', '').strip()
+        content = request.form.get('content', '').strip()
+        filename = secure_filename(f"{title}.txt")
+
+        if not filename or not content:
+            return render_template('error.html', title='ERROR', error="Title and content are required.")
+
+        file_path = os.path.join(app.config['PROCESSED_FOLDER'], filename)
+
+        try:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+
+            config = {
+                "filename": file_path,
+                "title": title,
+                "author": author,
+                "model": model,
+                "voice": voice
+            }
+
+            tts_task = KokoroGenerator(config)
+            tts_queue.put(tts_task)
+
+            return render_template('success.html', title='SUCCESS', message="Task added to queue.")
+        except Exception as e:
+            return render_template('error.html', title='ERROR', error=str(e))
+
+    # GET method - show form
+    return render_template('index.html', title='TTS Generator', voices=voices)
+    
 @app.route('/version', methods=['GET'])
 def get_version():
     with open("version.json", "r") as f:
@@ -93,6 +137,16 @@ def available_items():
     files = os.listdir(PROCESSED_FOLDER)  # List files in the clean_text directory
     files_with_index = list(enumerate(files))  # Create a list of (index, file) tuples
     return render_template('available_items.html', title='Text Inventory', files=files_with_index)
+    
+@app.route('/cleaned/delete/<filename>', methods=['POST'])
+def delete_text_file(filename):
+    filepath = os.path.join(PROCESSED_FOLDER, filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+        flash(f"{filename} has been deleted.", "success")
+    else:
+        flash(f"{filename} not found.", "danger")
+    return redirect(url_for('available_items'))
 
 # Route to display available items in the clean_text directory
 @app.route('/text-archive', methods=['GET'])
@@ -291,6 +345,15 @@ def download_audio_file(filename):
     if not os.path.exists(os.path.join(AUDIO_FOLDER, filename)):
         return jsonify({"error": "File not found."}), 404
     return send_from_directory(AUDIO_FOLDER, filename, as_attachment=True)
+    
+@app.route('/audio/play/<filename>', methods=['GET'])
+def play_audio_file(filename):
+    # Ensure the file exists in the audio folder
+    if not os.path.exists(os.path.join(AUDIO_FOLDER, filename)):
+        return jsonify({"error": "File not found."}), 404
+    # Serve the file inline without forcing a download
+    return send_from_directory(AUDIO_FOLDER, filename)
+
 
 @app.route('/edit/<filename>', methods=['GET'])
 def edit_text(filename):
