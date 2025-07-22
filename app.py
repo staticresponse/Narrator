@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, jsonify, send_from_directory, redirect, url_for
+from flask import Flask, request, render_template, jsonify, send_from_directory, redirect, url_for, flash
 import os
 import json
 import datetime #unused
@@ -26,6 +26,12 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
 app.config['AUDIO_FOLDER'] = AUDIO_FOLDER
 app.config['TXT_DONE_FOLDER'] = TXT_DONE_FOLDER
+
+app.secret_key = os.environ.get('FLASK_SECRET_KEY')
+
+if not app.secret_key:
+    print ("Key not set. Using dummy value for testing")
+    app.secret_key = "testing"
 
 @app.route('/', methods=['GET', 'POST'])
 def welcome():
@@ -131,6 +137,16 @@ def available_items():
     files = os.listdir(PROCESSED_FOLDER)  # List files in the clean_text directory
     files_with_index = list(enumerate(files))  # Create a list of (index, file) tuples
     return render_template('available_items.html', title='Text Inventory', files=files_with_index)
+    
+@app.route('/cleaned/delete/<filename>', methods=['POST'])
+def delete_text_file(filename):
+    filepath = os.path.join(PROCESSED_FOLDER, filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+        flash(f"{filename} has been deleted.", "success")
+    else:
+        flash(f"{filename} not found.", "danger")
+    return redirect(url_for('available_items'))
 
 # Route to display available items in the clean_text directory
 @app.route('/text-archive', methods=['GET'])
