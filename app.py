@@ -3,6 +3,7 @@ import os
 import json
 import datetime #unused
 from bs4 import BeautifulSoup # for screenplay modules
+from werkzeug.utils import secure_filename
 # CUSTOM MODULES
 from preprocessors import TextIn
 from wave_gen import KokoroGenerator, tts_queue
@@ -27,9 +28,48 @@ app.config['AUDIO_FOLDER'] = AUDIO_FOLDER
 app.config['TXT_DONE_FOLDER'] = TXT_DONE_FOLDER
 
 # Welcome page
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def welcome():
-    return render_template('index.html',title='TTS Generator')
+    voices = {
+        "af_bella": "American Bella",
+        "bf_emma": "British Emma"
+    }
+
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        author = request.form.get('author', '').strip()
+        model = request.form.get('model', '').strip()
+        voice = request.form.get('voice', '').strip()
+        content = request.form.get('content', '').strip()
+        filename = secure_filename(f"{title}.txt")
+
+        if not filename or not content:
+            return render_template('error.html', title='ERROR', error="Title and content are required.")
+
+        file_path = os.path.join(app.config['PROCESSED_FOLDER'], filename)
+
+        try:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+
+            config = {
+                "filename": file_path,
+                "title": title,
+                "author": author,
+                "model": model,
+                "voice": voice
+            }
+
+            tts_task = KokoroGenerator(config)
+            tts_queue.put(tts_task)
+
+            return render_template('success.html', title='SUCCESS', message="Task added to queue.")
+        except Exception as e:
+            return render_template('error.html', title='ERROR', error=str(e))
+
+    # GET method - show form
+    return render_template('index.html', title='TTS Generator', voices=voices)
+    
 
 @app.route('/version', methods=['GET'])
 def get_version():
