@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap-icons.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/upload.css') }}">
     <title>{{ title }}</title>
         <style>
@@ -19,7 +20,7 @@
 
 {% block content %}
 {% endblock %}
+{% include 'footer.html' %}
   </body>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="{{ url_for('static', filename='src/bootstrap.bundle.min.js') }}"></script>
 </html>
