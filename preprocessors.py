@@ -7,6 +7,7 @@ from ebooklib import epub
 import ebooklib
 import inflect
 import logging
+import unicodedata
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -178,6 +179,7 @@ class TextIn:
                 .replace("*", " ")
                 .strip()
         )
+        text = self.normalize_unicode_to_ascii(text)
 
         # --- Remove first line if it's the intro ---
         lines = text.splitlines()
@@ -232,6 +234,36 @@ class TextIn:
 
         return output.strip()
 
+    def normalize_unicode_to_ascii(self, text: str) -> str:
+        """
+        Normalize Unicode characters to ASCII equivalents.
+        Uses NFKC normalization and additional manual replacements.
+        """
+        # Apply Unicode normalization (NFKC) to convert fullwidth and compatibility chars to ASCII
+        text = unicodedata.normalize('NFKC', text)
+
+        # Additional manual replacements if needed:
+        replacements = {
+            '“': '"',
+            '”': '"',
+            '‘': "'",
+            '’': "'",
+            '—': '-',
+            '–': '-',
+            '…': '...',
+            '•': '*',
+            '‹': '<',
+            '›': '>',
+            '«': '<<',
+            '»': '>>',
+            '￥': '¥',
+            ' ': ' ',  # non-breaking space to space
+            # Add any other you want here
+        }
+        for k, v in replacements.items():
+            text = text.replace(k, v)
+
+        return text
 
       
 

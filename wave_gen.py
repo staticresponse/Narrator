@@ -12,6 +12,8 @@ import soundfile as sf
 
 from kokoro import KModel, KPipeline
 
+
+from postprocessor import ProductionWav
 # Configure logger
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -35,7 +37,7 @@ class WAVGenerator:
         # Optional model config dict
         self.model_config = {
             "name": config.get("voice", "bf_emma"),  # Default voice
-            "sentence_chunk_length": config.get("sentence_chunk_length", 1000)
+            "sentence_chunk_length": config.get("sentence_chunk_length", 480)
         }
 
     def __repr__(self):
@@ -48,7 +50,7 @@ class WAVGenerator:
         with open(self.file_path, "r", encoding="utf-8") as file:
             return file.read()
 
-    def combine_sentences(self, sentences, length=5000):
+    def combine_sentences(self, sentences, length=480):
         current_chunk = ""
         for sentence in sentences:
             if len(current_chunk) + len(sentence) + 1 > length:
@@ -145,6 +147,18 @@ class WAVGenerator:
                     wf.writeframes(f)
 
             logger.info(f"✅ Combined WAV saved as: {output_filename}")
+
+            # 🔊 Conditionally apply intro/outro overlay
+            if self.config.get("intro"):
+                try:
+                    logger.info("🎧 Intro found — applying intro/outro overlays...")
+                    ProductionWav(wav_path=output_filename, config=self.config)
+                    logger.info("✅ Overlays applied successfully.")
+                except Exception as e:
+                    logger.error(f"❌ Failed to apply overlays: {e}")
+            else:
+                logger.info("⚠️ No intro specified in config — skipping overlays.")
+                
             for f in temp_files:
                 os.remove(f)
 
@@ -154,38 +168,61 @@ class WAVGenerator:
 
 class KokoroGenerator(WAVGenerator):
     def generate_wav(self):
+        import time
+
+        MAX_RETRIES = 3
+        RETRY_DELAY = 2  # seconds
         pipeline = KPipeline(lang_code='a')
         chunks = self.sent_tokenizer()
+        expected_count = len(chunks)
+        logger.info(f"🧠 Tokenized into {expected_count} chunks.")
 
-        logger.info("🧠 Prechecking for existing audio chunks...")
-        to_generate = []
-        for i in range(len(chunks)):
-            if not os.path.exists(f"temp_{i}.wav"):
-                to_generate.append(i)
-            else:
-                logger.info(f"⏩ Skipping index {i} — temp_{i}.wav already exists.")
+        for idx, text in enumerate(chunks):
+            temp_filename = f"temp_{idx}.wav"
+            if os.path.exists(temp_filename):
+                logger.info(f"⏩ Skipping {temp_filename}, already exists.")
+                continue
 
-        if not to_generate:
-            logger.info("📦 All temp files already exist. Skipping generation.")
-        else:
-            generator = pipeline(
-                text=[chunks[i] for i in to_generate],
-                voice=self.model_config.get("name", "bf_emma"),
-                speed=1,
-                split_pattern=r'\n+'
-            )
-
-            for idx, (gs, ps, audio) in zip(to_generate, generator):
-                temp_filename = f"temp_{idx}.wav"
-                logger.info(f"🎙️ Generating index {idx}, text: {gs}, phonemes: {ps}")
+            retry_count = 0
+            while retry_count < MAX_RETRIES:
                 try:
+                    logger.info(f"🎙️ Attempting to generate chunk {idx} (try {retry_count + 1})")
+                    generator = pipeline(
+                        text=[text],
+                        voice=self.model_config.get("name", "bf_emma"),
+                        speed=1,
+                        split_pattern=r'\n+'
+                    )
+
+                    result = next(generator, None)
+                    if result is None:
+                        raise ValueError("Generator returned None. Possible Kokoro failure.")
+
+                    gs, ps, audio = result
                     sf.write(temp_filename, audio, 24000, format='WAV', subtype='PCM_16')
-                    logger.info(f"✅ Wrote {temp_filename}")
+                    logger.info(f"✅ Successfully wrote {temp_filename}")
+                    break  # success, exit retry loop
+
                 except Exception as e:
-                    logger.error(f"❌ Failed to write {temp_filename}: {e}")
-                    raise e
+                    logger.warning(f"⚠️ Chunk {idx} generation failed on attempt {retry_count + 1}: {e}")
+                    retry_count += 1
+                    time.sleep(RETRY_DELAY)
+
+            if not os.path.exists(temp_filename):
+                logger.error(f"❌ Failed to generate chunk {idx} after {MAX_RETRIES} retries.")
+                raise RuntimeError(f"Aborting: chunk {idx} could not be generated.")
+
+        # ✅ Confirm all temp files exist before combining
+        missing_files = [f"temp_{i}.wav" for i in range(expected_count) if not os.path.exists(f"temp_{i}.wav")]
+        if missing_files:
+            logger.error("❌ Some temp WAV files are still missing after retries:")
+            for f in missing_files:
+                logger.error(f" - {f}")
+            raise RuntimeError("TTS generation incomplete. Cannot proceed with combining.")
 
         self.combine_temp_wavs(output_name=self.title.replace(" ", "_"))
+
+
         #self.apply_metadata(chapter_number=1)
 
 
