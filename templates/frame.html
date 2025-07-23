@@ -12,6 +12,7 @@
         .bin-container { display: flex; flex-wrap: wrap; gap: 10px; }
         .bin { width: 18%; padding: 10px; border: 1px solid #ddd; }
     </style>
+
   </head>
   <body>
 
@@ -21,6 +22,25 @@
 {% block content %}
 {% endblock %}
 {% include 'footer.html' %}
+	<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const textarea = document.getElementById('content');
+    const lineNumbers = document.getElementById('line-numbers');
+
+    function updateLineNumbers() {
+        const lines = textarea.value.split('\n').length;
+        lineNumbers.innerHTML = Array.from({length: lines}, (_, i) => i + 1).join('<br>');
+    }
+
+    textarea.addEventListener('input', updateLineNumbers);
+    textarea.addEventListener('scroll', () => {
+        lineNumbers.scrollTop = textarea.scrollTop;
+    });
+
+    // Initialize
+    updateLineNumbers();
+});
+</script>
   </body>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </html>

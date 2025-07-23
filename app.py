@@ -36,8 +36,12 @@ if not app.secret_key:
 @app.route('/', methods=['GET', 'POST'])
 def welcome():
     voices = {
-        "af_bella": "American Bella",
-        "bf_emma": "British Emma"
+        "af_bella": "American F. Bella",
+        "af_heart": "American F. Heart",
+        "af_nicole": "American F. Nicole",
+        "bf_emma": "British F. Emma",
+        "am_michael":"American M. Michael",
+        "am_fenrir":"American M. Fenrir"
     }
 
     if request.method == 'POST':
