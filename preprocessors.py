@@ -278,3 +278,15 @@ class TextIn:
                 word, pronunciation = line.strip().split('|', maxsplit=1)
                 pronunciation_dict[word.lower()] = pronunciation
         return pronunciation_dict
+    
+    def set_phenomes(self):
+        '''
+            Utilized at the end
+            Dependency: None
+        '''
+        phenomes_dict = {}
+        with open(self.customphenomes, 'r') as f:
+            for line in f:
+                word, phenome = line.strip().split('|', maxsplit=1)
+                phenomes_dict[word.lower()] = pronunciation
+            return phenomes_dict
