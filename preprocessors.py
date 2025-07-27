@@ -8,6 +8,8 @@ import ebooklib
 import inflect
 import logging
 import unicodedata
+import json
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -112,7 +114,7 @@ class TextIn:
             f.write(full_text)
 
         logger.info(f"Part {part_number} (Chapters {start_chapter} to {end_chapter}) saved as {filename}.")
-
+        self.write_metadata_file(filename, start_chapter, end_chapter)
 
     def apply_customwords(self, text):    
         '''
@@ -316,3 +318,20 @@ class TextIn:
         
         return re.sub(r'\b\w+\b', replace_phoneme, text)
 
+    def write_metadata_file(self, filename, start_chapter, end_chapter):
+        """
+        Writes metadata JSON file accompanying the text file.
+        Filename will have `.meta` extension.
+        """
+        metadata = {
+            "author": self.author,
+            "title": self.title,
+            "filename": os.path.basename(filename),
+            "chapters": [f"Chapter {i}" for i in range(start_chapter, end_chapter + 1)]
+        }
+
+        meta_filename = os.path.splitext(filename)[0] + ".meta"
+        with open(meta_filename, "w", encoding="utf-8") as meta_file:
+            json.dump(metadata, meta_file, indent=2)
+
+        logger.info(f"Metadata saved as {meta_filename}")
