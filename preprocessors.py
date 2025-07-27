@@ -27,6 +27,8 @@ class TextIn:
         self.title = title
         self.author = author
         self.pronunciation = self.set_custom_dict()
+        self.customphenomes = customphenomes
+        self.phenomes = self.set_phenomes()
         # Automatically create the clean_text directory
         self.clean_text_dir = "clean_text"
         os.makedirs(self.clean_text_dir, exist_ok=True)
@@ -99,12 +101,18 @@ class TextIn:
     def save_chapter_to_file(self, part_number, start_chapter, end_chapter, text):
         '''
             Saves the cleaned chapter text to a file in the clean_text directory with a description.
+            Applies phoneme replacements before saving.
         '''
+        # Apply phoneme replacements to the full body (not intro/outtro)
+        text = self.apply_custom_phenomes(text)
+        full_text = self.intro + "\n\n" + text + "\n" + self.outtro
+
         filename = os.path.join(self.clean_text_dir, f"{self.bookname}_part_{part_number}.txt")
-        
         with open(filename, "w", encoding="utf-8") as f:
-            f.write(self.intro + "\n\n" + text + "\n" + self.outtro)
+            f.write(full_text)
+
         logger.info(f"Part {part_number} (Chapters {start_chapter} to {end_chapter}) saved as {filename}.")
+
 
     def apply_customwords(self, text):    
         '''
@@ -281,12 +289,30 @@ class TextIn:
     
     def set_phenomes(self):
         '''
-            Utilized at the end
-            Dependency: None
+            Loads custom phenomes file into a dictionary.
         '''
         phenomes_dict = {}
-        with open(self.customphenomes, 'r') as f:
-            for line in f:
-                word, phenome = line.strip().split('|', maxsplit=1)
-                phenomes_dict[word.lower()] = pronunciation
+        if not os.path.exists(self.customphenomes):
+            logger.warning(f"Custom phoneme file {self.customphenomes} not found.")
             return phenomes_dict
+
+        with open(self.customphenomes, 'r', encoding="utf-8") as f:
+            for line in f:
+                if '|' not in line:
+                    continue
+                word, phenome = line.strip().split('|', maxsplit=1)
+                phenomes_dict[word.lower()] = phenome
+        return phenomes_dict
+
+    def apply_custom_phenomes(self, text):
+        '''
+            Replaces words in text with their phoneme equivalents.
+            Should be applied last before saving.
+        '''
+        def replace_phoneme(match):
+            word = match.group(0)
+            clean_word = re.sub(r'[^\w\s]', '', word.lower())
+            return self.phenomes.get(clean_word, word)
+        
+        return re.sub(r'\b\w+\b', replace_phoneme, text)
+
