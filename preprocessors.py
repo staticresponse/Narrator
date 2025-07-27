@@ -307,7 +307,7 @@ class TextIn:
     def apply_custom_phenomes(self, text):
         '''
             Replaces words in text with their phoneme equivalents.
-            Should be applied last before saving.
+            Applied last before saving the text file.
         '''
         def replace_phoneme(match):
             word = match.group(0)
