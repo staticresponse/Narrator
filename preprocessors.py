@@ -14,7 +14,7 @@ import json
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 class TextIn:
-    def __init__(self, source, start, end, skiplinks, debug, title, author, chapters_per_file=1, customwords="custom_words.txt", intro="", outtro=""):
+    def __init__(self, source, start, end, skiplinks, debug, title, author, chapters_per_file=1, customwords="custom_words.txt", intro="", outtro="", customphenomes="custom_phonemes.txt"):
 
         self.source = source
         self.bookname = os.path.splitext(os.path.basename(source))[0]
