@@ -52,15 +52,19 @@ class TextIn:
         '''
         Class function for extracting and processing chapters from EPUB in correct reading order.
         '''
-        # Ensure we respect reading order
         item_map = {item.get_id(): item for item in self.book.get_items_of_type(ebooklib.ITEM_DOCUMENT)}
         ordered_ids = [item[0] for item in self.book.spine]
-        
+
         chapter_num = 1
+        skipped = 0
         for uid in ordered_ids:
             if uid not in item_map:
                 continue
-            
+
+            if skipped < 2:
+                skipped += 1
+                continue  # ⛔ Skip the first two spine items (non-chapters)
+
             content = item_map[uid].get_content()
             text = self.chap2text(content)
             text = self.prep_text(text)
@@ -84,6 +88,7 @@ class TextIn:
             self.end = chapter_num - 1
 
         self.save_combined_chapters()
+
 
 
     def save_combined_chapters(self):
