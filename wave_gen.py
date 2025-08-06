@@ -9,6 +9,8 @@ from threading import Thread
 from mutagen.wave import WAVE
 from nltk.tokenize import PunktSentenceTokenizer
 import soundfile as sf
+import contextlib
+import re
 
 from kokoro import KModel, KPipeline
 
@@ -18,7 +20,12 @@ from postprocessor import ProductionWav
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-
+def get_wav_duration(filename):
+    with contextlib.closing(wave.open(filename, 'r')) as f:
+        frames = f.getnframes()
+        rate = f.getframerate()
+        return frames / float(rate)
+        
 class WAVGenerator:
     def __init__(self, config: Dict[str, Any]):
         required_keys = ["filename", "title", "author", "model"]
@@ -39,6 +46,7 @@ class WAVGenerator:
             "name": config.get("voice", "bf_emma"),  # Default voice
             "sentence_chunk_length": config.get("sentence_chunk_length", 480)
         }
+        logger.info(f"🛠️ WAVGenerator config loaded:\n{json.dumps(self.config, indent=2)}")
 
     def __repr__(self):
         return (
@@ -63,18 +71,43 @@ class WAVGenerator:
 
     def sent_tokenizer(self):
         text = self.extract_text()
-        sentence_queue = []
         tokenizer = PunktSentenceTokenizer()
         sentences = tokenizer.tokenize(text)
-        sentences = [s for s in sentences if any(c.isalnum() for c in s)]
+        sentences = [s.strip() for s in sentences if any(c.isalnum() for c in s)]
 
-        sentence_groups = list(self.combine_sentences(sentences, self.model_config["sentence_chunk_length"]))
-        for i, chunk in enumerate(sentence_groups):
-            if not chunk.strip():
-                continue
-            tempwav = f"temp_{i}.wav"
-            sentence_queue.append((chunk, tempwav))
-        return sentence_groups
+        chapter_pattern = re.compile(r"^chapter\s+\d+", re.IGNORECASE)
+        current_chapter = None
+        chunk_data = []
+        current_chunk = ""
+
+        for sentence in sentences:
+            if chapter_pattern.match(sentence.lower()):
+                current_chapter = sentence.strip()  # e.g., "Chapter 1"
+
+            # If no chapter yet, label as "Prologue" or something similar
+            if not current_chapter:
+                current_chapter = "Prologue"
+
+            if len(current_chunk) + len(sentence) + 1 > self.model_config["sentence_chunk_length"]:
+                if current_chunk.strip():
+                    chunk_data.append({
+                        "text": current_chunk.strip(),
+                        "filename": f"temp_{len(chunk_data)}.wav",
+                        "chapter": current_chapter
+                    })
+                current_chunk = sentence
+            else:
+                current_chunk += " " + sentence
+
+        if current_chunk.strip():
+            chunk_data.append({
+                "text": current_chunk.strip(),
+                "filename": f"temp_{len(chunk_data)}.wav",
+                "chapter": current_chapter
+            })
+
+        return chunk_data
+
 
     def apply_metadata(self, chapter_number: int):
         try:
@@ -90,32 +123,34 @@ class WAVGenerator:
         except Exception as e:
             logger.error(f"Error applying metadata to {self.file_path}: {e}")
     def combine_temp_wavs(self, output_name):
-        """
-        Combines temp_N.wav files into a single output WAV file.
-        """
         logger.info("🔧 combine_temp_wavs started...")
 
+        chunk_data = getattr(self, "chunk_data", [])
+        chapter_timings = {}
+        current_time = 0.0
         temp_files = []
-        i = 0
-
-        while True:
-            temp_file = f"temp_{i}.wav"
+        
+        for i, chunk in enumerate(chunk_data):
+            temp_file = chunk["filename"]
             if os.path.exists(temp_file):
-                logger.info(f"📁 Found: {temp_file}")
+                duration = get_wav_duration(temp_file)
+                chapter = chunk["chapter"]
+                if chapter not in chapter_timings:
+                    chapter_timings[chapter] = {"starttime": current_time, "endtime": current_time + duration}
+                else:
+                    chapter_timings[chapter]["endtime"] += duration
+
+                current_time += duration
                 temp_files.append(temp_file)
-                i += 1
             else:
-                logger.info(f"⛔ Stopped search — {temp_file} not found.")
-                break
+                logger.error(f"❌ Missing expected chunk file: {temp_file}")
 
         if not temp_files:
             logger.error("❌ No temp WAV files found to combine.")
             return
 
-        # Extract base name and keep part number if present
-        base_filename = os.path.splitext(os.path.basename(self.file_path))[0]  # e.g., A_Name_in_the_Ashes_part_1
-        output_filename = os.path.join("audio", f"{base_filename}.wav")
-
+        # Combine audio
+        output_filename = os.path.join("audio", f"{output_name}.wav")
         try:
             with wave.open(temp_files[0], 'rb') as wf:
                 ref_params = wf.getparams()
@@ -123,24 +158,9 @@ class WAVGenerator:
 
             for temp_file in temp_files[1:]:
                 with wave.open(temp_file, 'rb') as wf:
-                    params = wf.getparams()
-                    if (
-                        params.nchannels != ref_params.nchannels or
-                        params.sampwidth != ref_params.sampwidth or
-                        params.framerate != ref_params.framerate or
-                        params.comptype != ref_params.comptype or
-                        params.compname != ref_params.compname
-                    ):
-                        logger.error(f"❌ Format mismatch in {temp_file}")
-                        logger.error(f"Expected format: {ref_params}")
-                        logger.error(f"Found format:    {params}")
-                        return
-
                     frames.append(wf.readframes(wf.getnframes()))
 
-            # Ensure output folder exists
             os.makedirs(os.path.dirname(output_filename), exist_ok=True)
-
             with wave.open(output_filename, 'wb') as wf:
                 wf.setparams(ref_params)
                 for f in frames:
@@ -148,37 +168,68 @@ class WAVGenerator:
 
             logger.info(f"✅ Combined WAV saved as: {output_filename}")
 
-            # 🔊 Conditionally apply intro/outro overlay
+            # Apply overlays if needed
             if self.config.get("intro"):
                 try:
-                    logger.info("🎧 Intro found — applying intro/outro overlays...")
+                    logger.info("🎧 Intro found — applying overlays...")
                     ProductionWav(wav_path=output_filename, config=self.config)
-                    logger.info("✅ Overlays applied successfully.")
                 except Exception as e:
                     logger.error(f"❌ Failed to apply overlays: {e}")
             else:
-                logger.info("⚠️ No intro specified in config — skipping overlays.")
-                
+                logger.info("⚠️ No intro specified — skipping overlays.")
+
+            # Clean up temp files
             for f in temp_files:
                 os.remove(f)
+
+            # ✅ Update metadata
+            self.update_metadata_with_runtime(chapter_timings)
 
         except Exception as e:
             logger.error(f"❌ Failed to combine WAV files: {e}")
             raise e
 
+    def update_metadata_with_runtime(self, chapter_timings):
+        metadata_path = self.file_path.replace(".txt", ".meta")
+        try:
+            with open(metadata_path, "r", encoding="utf-8") as f:
+                metadata = json.load(f)
+        except Exception as e:
+            logger.error(f"❌ Could not load metadata file '{metadata_path}': {e}")
+            return
+
+        metadata["chapter_runtime"] = []
+        for chapter, times in chapter_timings.items():
+            metadata["chapter_runtime"].append({
+                "chapter": chapter,
+                "starttime": round(times["starttime"], 2),
+                "endtime": round(times["endtime"], 2)
+            })
+
+        try:
+            with open(metadata_path, "w", encoding="utf-8") as f:
+                json.dump(metadata, f, indent=2)
+            logger.info(f"✅ Updated metadata with chapter_runtime in {metadata_path}")
+        except Exception as e:
+            logger.error(f"❌ Failed to write updated metadata: {e}")
+
+
 class KokoroGenerator(WAVGenerator):
     def generate_wav(self):
         import time
-
         MAX_RETRIES = 3
-        RETRY_DELAY = 2  # seconds
+        RETRY_DELAY = 2
         pipeline = KPipeline(lang_code='a')
-        chunks = self.sent_tokenizer()
+
+        self.chunk_data = self.sent_tokenizer()
+        chunks = self.chunk_data
         expected_count = len(chunks)
         logger.info(f"🧠 Tokenized into {expected_count} chunks.")
 
-        for idx, text in enumerate(chunks):
-            temp_filename = f"temp_{idx}.wav"
+        for idx, chunk in enumerate(chunks):
+            text = chunk["text"]
+            temp_filename = chunk["filename"]
+
             if os.path.exists(temp_filename):
                 logger.info(f"⏩ Skipping {temp_filename}, already exists.")
                 continue
@@ -186,44 +237,38 @@ class KokoroGenerator(WAVGenerator):
             retry_count = 0
             while retry_count < MAX_RETRIES:
                 try:
-                    logger.info(f"🎙️ Attempting to generate chunk {idx} (try {retry_count + 1})")
+                    logger.info(f"🎙️ Generating chunk {idx} (try {retry_count + 1})")
                     generator = pipeline(
                         text=[text],
                         voice=self.model_config.get("name", "bf_emma"),
                         speed=1,
                         split_pattern=r'\n+'
                     )
-
                     result = next(generator, None)
                     if result is None:
-                        raise ValueError("Generator returned None. Possible Kokoro failure.")
+                        raise ValueError("Generator returned None.")
 
-                    gs, ps, audio = result
+                    _, _, audio = result
                     sf.write(temp_filename, audio, 24000, format='WAV', subtype='PCM_16')
-                    logger.info(f"✅ Successfully wrote {temp_filename}")
-                    break  # success, exit retry loop
-
+                    logger.info(f"✅ Wrote {temp_filename}")
+                    break
                 except Exception as e:
-                    logger.warning(f"⚠️ Chunk {idx} generation failed on attempt {retry_count + 1}: {e}")
+                    logger.warning(f"⚠️ Chunk {idx} failed on attempt {retry_count + 1}: {e}")
                     retry_count += 1
                     time.sleep(RETRY_DELAY)
 
             if not os.path.exists(temp_filename):
-                logger.error(f"❌ Failed to generate chunk {idx} after {MAX_RETRIES} retries.")
-                raise RuntimeError(f"Aborting: chunk {idx} could not be generated.")
+                logger.error(f"❌ Failed to generate {temp_filename}")
+                raise RuntimeError(f"Chunk {idx} failed")
 
-        # ✅ Confirm all temp files exist before combining
-        missing_files = [f"temp_{i}.wav" for i in range(expected_count) if not os.path.exists(f"temp_{i}.wav")]
-        if missing_files:
-            logger.error("❌ Some temp WAV files are still missing after retries:")
-            for f in missing_files:
-                logger.error(f" - {f}")
-            raise RuntimeError("TTS generation incomplete. Cannot proceed with combining.")
+        missing = [c["filename"] for c in chunks if not os.path.exists(c["filename"])]
+        if missing:
+            logger.error("❌ Missing chunks after retries: " + ", ".join(missing))
+            raise RuntimeError("TTS incomplete")
 
-        self.combine_temp_wavs(output_name=self.title.replace(" ", "_"))
+        basename = os.path.splitext(os.path.basename(self.file_path))[0]
+        self.combine_temp_wavs(output_name=basename)
 
-
-        #self.apply_metadata(chapter_number=1)
 
 
 def process_queue(task_queue):

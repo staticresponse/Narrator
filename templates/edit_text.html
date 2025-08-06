@@ -5,6 +5,20 @@
     <h1 class="mb-4">Editing: <code>{{ filename }}</code></h1>
 
     <form method="POST" action="{{ url_for('save_text', filename=filename) }}">
+        <!-- Replace Panel -->
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <input type="text" id="findWord" class="form-control" placeholder="Find word">
+            </div>
+            <div class="col-md-4">
+                <input type="text" id="replaceWord" class="form-control" placeholder="Replace with">
+            </div>
+            <div class="col-md-4">
+                <button type="button" class="btn btn-warning w-100" onclick="replaceText()">Replace All</button>
+            </div>
+        </div>
+
+        <!-- Text Area -->
         <div class="mb-3">
             <label for="content" class="form-label">Text Content</label>
             <textarea class="form-control" id="content" name="content" rows="25" style="font-family: monospace;">{{ content }}</textarea>
@@ -15,5 +29,20 @@
     </form>
 </div>
 
+<script>
+function replaceText() {
+    const find = document.getElementById('findWord').value;
+    const replace = document.getElementById('replaceWord').value;
+    const contentBox = document.getElementById('content');
 
+    if (!find) {
+        alert('Enter a word to find.');
+        return;
+    }
+
+    // Use RegExp for global and case-sensitive match
+    const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'); // escape special chars
+    contentBox.value = contentBox.value.replace(regex, replace);
+}
+</script>
 {% endblock %}

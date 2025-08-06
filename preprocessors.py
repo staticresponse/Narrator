@@ -8,11 +8,13 @@ import ebooklib
 import inflect
 import logging
 import unicodedata
+import json
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 class TextIn:
-    def __init__(self, source, start, end, skiplinks, debug, title, author, chapters_per_file=1, customwords="custom_words.txt", intro="", outtro=""):
+    def __init__(self, source, start, end, skiplinks, debug, title, author, chapters_per_file=1, customwords="custom_words.txt", intro="", outtro="", customphenomes="custom_phonemes.txt"):
 
         self.source = source
         self.bookname = os.path.splitext(os.path.basename(source))[0]
@@ -27,6 +29,8 @@ class TextIn:
         self.title = title
         self.author = author
         self.pronunciation = self.set_custom_dict()
+        self.customphenomes = customphenomes
+        self.phenomes = self.set_phenomes()
         # Automatically create the clean_text directory
         self.clean_text_dir = "clean_text"
         os.makedirs(self.clean_text_dir, exist_ok=True)
@@ -48,15 +52,19 @@ class TextIn:
         '''
         Class function for extracting and processing chapters from EPUB in correct reading order.
         '''
-        # Ensure we respect reading order
         item_map = {item.get_id(): item for item in self.book.get_items_of_type(ebooklib.ITEM_DOCUMENT)}
         ordered_ids = [item[0] for item in self.book.spine]
-        
+
         chapter_num = 1
+        skipped = 0
         for uid in ordered_ids:
             if uid not in item_map:
                 continue
-            
+
+            if skipped < 2:
+                skipped += 1
+                continue  # ⛔ Skip the first two spine items (non-chapters)
+
             content = item_map[uid].get_content()
             text = self.chap2text(content)
             text = self.prep_text(text)
@@ -82,6 +90,7 @@ class TextIn:
         self.save_combined_chapters()
 
 
+
     def save_combined_chapters(self):
         '''
             Combines chapters and saves them to files.
@@ -99,12 +108,18 @@ class TextIn:
     def save_chapter_to_file(self, part_number, start_chapter, end_chapter, text):
         '''
             Saves the cleaned chapter text to a file in the clean_text directory with a description.
+            Applies phoneme replacements before saving.
         '''
+        # Apply phoneme replacements to the full body (not intro/outtro)
+        text = self.apply_custom_phenomes(text)
+        full_text = self.intro + "\n\n" + text + "\n" + self.outtro
+
         filename = os.path.join(self.clean_text_dir, f"{self.bookname}_part_{part_number}.txt")
-        
         with open(filename, "w", encoding="utf-8") as f:
-            f.write(self.intro + "\n\n" + text + "\n" + self.outtro)
+            f.write(full_text)
+
         logger.info(f"Part {part_number} (Chapters {start_chapter} to {end_chapter}) saved as {filename}.")
+        self.write_metadata_file(filename, start_chapter, end_chapter)
 
     def apply_customwords(self, text):    
         '''
@@ -278,3 +293,50 @@ class TextIn:
                 word, pronunciation = line.strip().split('|', maxsplit=1)
                 pronunciation_dict[word.lower()] = pronunciation
         return pronunciation_dict
+    
+    def set_phenomes(self):
+        '''
+            Loads custom phenomes file into a dictionary.
+        '''
+        phenomes_dict = {}
+        if not os.path.exists(self.customphenomes):
+            logger.warning(f"Custom phoneme file {self.customphenomes} not found.")
+            return phenomes_dict
+
+        with open(self.customphenomes, 'r', encoding="utf-8") as f:
+            for line in f:
+                if '|' not in line:
+                    continue
+                word, phenome = line.strip().split('|', maxsplit=1)
+                phenomes_dict[word.lower()] = phenome
+        return phenomes_dict
+
+    def apply_custom_phenomes(self, text):
+        '''
+            Replaces words in text with their phoneme equivalents.
+            Applied last before saving the text file.
+        '''
+        def replace_phoneme(match):
+            word = match.group(0)
+            clean_word = re.sub(r'[^\w\s]', '', word.lower())
+            return self.phenomes.get(clean_word, word)
+        
+        return re.sub(r'\b\w+\b', replace_phoneme, text)
+
+    def write_metadata_file(self, filename, start_chapter, end_chapter):
+        """
+        Writes metadata JSON file accompanying the text file.
+        Filename will have `.meta` extension.
+        """
+        metadata = {
+            "author": self.author,
+            "title": self.title,
+            "filename": os.path.basename(filename),
+            "chapters": [f"Chapter {i}" for i in range(start_chapter, end_chapter + 1)]
+        }
+
+        meta_filename = os.path.splitext(filename)[0] + ".meta"
+        with open(meta_filename, "w", encoding="utf-8") as meta_file:
+            json.dump(metadata, meta_file, indent=2)
+
+        logger.info(f"Metadata saved as {meta_filename}")
