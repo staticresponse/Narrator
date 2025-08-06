@@ -1,3 +1,6 @@
 Mrs.|missus
 Mr.|mister
 Ms.|miss
+defence|defense
+realised|realized
+favourite|favorite
