@@ -1,9 +1,11 @@
 from flask import Flask, request, render_template, jsonify, send_from_directory, redirect, url_for, flash
 import os
 import json
-import datetime #unused
 from bs4 import BeautifulSoup
 from werkzeug.utils import secure_filename
+# BLUEPRINTS
+from blueprints.tts_blueprint import tts_bp
+# END BLUEPRINTS
 # CUSTOM MODULES
 from preprocessors import TextIn
 from wave_gen import KokoroGenerator, tts_queue
@@ -13,22 +15,29 @@ app = Flask(__name__)
 
 # Set upload folder and ensure it exists
 UPLOAD_FOLDER = 'uploads'
+META_FOLDER = 'metadata'
 PROCESSED_FOLDER = 'clean_text'
 AUDIO_FOLDER = 'audio'
 TXT_DONE_FOLDER = 'txt_done'
+PROD_FOLDER = 'production_wav'
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(PROCESSED_FOLDER, exist_ok=True)
+os.makedirs(META_FOLDER, exist_ok=True)
 os.makedirs(AUDIO_FOLDER, exist_ok=True)
 os.makedirs(TXT_DONE_FOLDER, exist_ok=True)
+os.makedirs(PROD_FOLDER, exist_ok=True)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
+app.config['META_FOLDER'] = META_FOLDER
 app.config['AUDIO_FOLDER'] = AUDIO_FOLDER
 app.config['TXT_DONE_FOLDER'] = TXT_DONE_FOLDER
+app.config['PROD_FOLDER'] = PROD_FOLDER
 
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
 
+app.register_blueprint(tts_bp)
 if not app.secret_key:
     print ("Key not set. Using dummy value for testing")
     app.secret_key = "testing"
@@ -141,6 +150,13 @@ def available_items():
     files = os.listdir(PROCESSED_FOLDER)  # List files in the clean_text directory
     files_with_index = list(enumerate(files))  # Create a list of (index, file) tuples
     return render_template('available_items.html', title='Text Inventory', files=files_with_index)
+
+# Route to display available items in the clean_text directory
+@app.route('/metadata', methods=['GET'])
+def available_metadata():
+    files = os.listdir(META_FOLDER)  # List files in the clean_text directory
+    files_with_index = list(enumerate(files))  # Create a list of (index, file) tuples
+    return render_template('metadata_viewer.html', title='Metadata Inventory', files=files_with_index)
     
 @app.route('/cleaned/delete/<filename>', methods=['POST'])
 def delete_text_file(filename):
@@ -158,183 +174,6 @@ def archived_items():
     files = os.listdir(TXT_DONE_FOLDER)  # List files in the clean_text directory
     files_with_index = list(enumerate(files))  # Create a list of (index, file) tuples
     return render_template('available_items.html', title='Archived Text', files=files_with_index)
-
-# Route for TTS generation
-@app.route('/tts-form/<filename>', methods=['GET'])
-def tts_form(filename):
-    # Ensure the file exists in the processed folder
-    if not os.path.exists(os.path.join(PROCESSED_FOLDER, filename)):
-        return render_template('error.html', title='ERROR', error="File Not Found.")
-
-    models = ['kokoro']  # Replace with actual models
-    return render_template('tts_form.html', title='TTS request', filename=filename, models=models)
-
-@app.route('/generate-tts', methods=['POST'])
-def generate_tts():
-    # Extract form values
-    filename = request.form.get('filename', '').strip()
-    title = request.form.get('title', '').strip()
-    author = request.form.get('author', '').strip()
-    model = request.form.get('model', '').strip()
-    subject = request.form.get('subject', '').strip()  # Added if form includes it
-    voice = request.form.get('voice', '').strip()
-
-    # Validate
-    if not filename or not os.path.exists(os.path.join(PROCESSED_FOLDER, filename)):
-        return render_template('error.html', title='ERROR', error="Invalid or missing file.")
-
-    if not title:
-        return render_template('error.html', title='ERROR', error="Title is required.")
-
-    if not author:
-        return render_template('error.html', title='ERROR', error="Author is required.")
-
-    # Build absolute file path
-    filepath = os.path.join(PROCESSED_FOLDER, filename)
-
-    # Prepare configuration dictionary
-    config = {
-        'filename': filepath,
-        'title': title,
-        'author': author,
-        'model': model,
-        'subject': subject,
-        'voice': voice
-    }
-
-    extra_keys = request.form.getlist('extra_keys[]')
-    extra_values = request.form.getlist('extra_values[]')
-    extra_args = {k: v for k, v in zip(extra_keys, extra_values) if k.strip()}
-    config.update(extra_args)
-
-    try:
-        # Create generator and run
-        tts_generator = KokoroGenerator(config)
-        tts_generator.generate_wav()
-
-        # Move output to AUDIO_FOLDER
-        output_file = os.path.splitext(filepath)[0] + ".wav"
-        final_path = os.path.join(app.config['AUDIO_FOLDER'], os.path.basename(output_file))
-        os.makedirs(app.config['AUDIO_FOLDER'], exist_ok=True)
-        os.rename(output_file, final_path)
-
-        return render_template('success.html', title='SUCCESS', message="TTS audio generated successfully.", file=final_path, model=model)
-    
-    except Exception as e:
-        return render_template('error.html', title='ERROR', error=str(e))
-
-@app.route('/add-to-queue', methods=['POST'])
-def add_to_queue():
-    filename = request.form.get('filename', '').strip()
-    title = request.form.get('title', '').strip()
-    author = request.form.get('author', '').strip()
-    model = request.form.get('model', '').strip()
-    subject = request.form.get('subject', '').strip()
-    voice = request.form.get('voice', '').strip()
-
-    if not filename:
-        return render_template('error.html', title='ERROR', error="Filename is required.")
-
-    file_path = os.path.join(app.config['PROCESSED_FOLDER'], filename)
-
-    if not os.path.exists(file_path):
-        return render_template('error.html', title='ERROR', error=f"File not found in processed directory: {file_path}")
-
-    try:
-        # Build the config dictionary for KokoroGenerator
-        config = {
-            "filename": file_path,
-            "title": title,
-            "author": author,
-            "model": model,
-            "subject": subject,
-            "voice": voice
-        }
-        extra_keys = request.form.getlist('extra_keys[]')
-        extra_values = request.form.getlist('extra_values[]')
-        extra_args = {k: v for k, v in zip(extra_keys, extra_values) if k.strip()}
-        config.update(extra_args)
-
-        # Create TTS task and enqueue it
-        tts_task = KokoroGenerator(config)
-        tts_queue.put(tts_task)
-
-        return render_template('success.html', title='SUCCESS', message="Task added to queue.")
-    except Exception as e:
-        return render_template('error.html', title='ERROR', error=str(e))
-
-
-
-@app.route('/tts-all-form', methods=['GET'])
-def tts_all_form():
-    """
-    Render the form to queue TTS for all files.
-    """
-    available_models = ['kokoro']
-    return render_template('tts_all_form.html', models=available_models)
-
-@app.route('/generate-tts-all', methods=['POST'])
-def generate_tts_all():
-    title = request.form.get('title', '').strip()
-    author = request.form.get('author', '').strip()
-    model = request.form.get('model', '').strip()
-    subject = request.form.get('subject', '').strip()
-    voice = request.form.get('voice', '').strip()
-
-    if not title or not author or not model:
-        return render_template('error.html', title='ERROR', error="All fields are required.")
-
-    files = os.listdir(app.config['PROCESSED_FOLDER'])
-    queued_files = []
-
-    for filename in files:
-        file_path = os.path.join(app.config['PROCESSED_FOLDER'], filename)
-        if not os.path.isfile(file_path):
-            continue
-
-        config = {
-            "filename": file_path,
-            "title": title,
-            "author": author,
-            "model": model,
-            "subject": subject,
-            "voice": voice
-        }
-        extra_keys = request.form.getlist('extra_keys[]')
-        extra_values = request.form.getlist('extra_values[]')
-        extra_args = {k: v for k, v in zip(extra_keys, extra_values) if k.strip()}
-        config.update(extra_args)
-
-        try:
-            tts_task = KokoroGenerator(config)
-            tts_queue.put(tts_task)
-            queued_files.append(filename)
-        except Exception as e:
-            logger.error(f"Failed to queue file {filename}: {e}")
-
-    return render_template(
-        'success.html',
-        title='SUCCESS',
-        message=f"Queued {len(queued_files)} files for processing.",
-        details=queued_files
-    )
-    
-@app.route('/current-queue', methods=['GET'])
-def current_queue():
-    """
-    Display the current items in the TTS queue.
-    """
-    queue_items = []
-    with tts_queue.mutex:
-        for task in list(tts_queue.queue):
-            queue_items.append({
-                'file_path': task.file_path,
-                'author': task.author,
-                'title': task.title,
-                'model': task.model
-            })
-
-    return render_template('queue.html', title="Current TTS Queue", queue_items=queue_items)
 
 # Route to display available items in the tts audio directory
 @app.route('/audio', methods=['GET'])

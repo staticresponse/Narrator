@@ -1,0 +1,35 @@
+{% extends "frame.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">Postprocess Audio</h1>
+    <form action="{{ url_for('postprod.postprocess') }}" method="POST">
+        
+        <div class="mb-3">
+            <label for="filename" class="form-label">WAV Filename</label>
+            <input type="text" class="form-control" id="filename" name="filename" placeholder="example.wav" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="metadatafilename" class="form-label">Metadata Filename (optional)</label>
+            <input type="text" class="form-control" id="metadatafilename" name="metadatafilename" placeholder="metadata.json">
+        </div>
+
+        <div class="mb-3">
+            <label for="intro" class="form-label">Intro Audio</label>
+            <input type="text" class="form-control" id="intro" name="intro" placeholder="intro.wav">
+        </div>
+
+        <div class="mb-3">
+            <label for="transition" class="form-label">Transition Audio</label>
+            <input type="text" class="form-control" id="transition" name="transition" placeholder="transition.wav">
+        </div>
+
+        <div class="mb-3">
+            <label for="outro" class="form-label">Outro Audio</label>
+            <input type="text" class="form-control" id="outro" name="outro" placeholder="outro.wav">
+        </div>
+
+        <button type="submit" class="btn btn-primary">Run Postprocess</button>
+    </form>
+</div>
+{% endblock %}

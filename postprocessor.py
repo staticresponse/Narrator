@@ -26,7 +26,7 @@ class ProductionWav:
 
         # Metadata is assumed to be in ./clean_text/
         base_name = os.path.splitext(os.path.basename(self.wav_path))[0]
-        meta_path = os.path.join("clean_text", f"{base_name}.meta")
+        meta_path = os.path.join("metadata", f"{base_name}.meta")
         self.chapter_metadata = self._load_chapter_metadata(meta_path)
 
         self.base = AudioSegment.from_wav(self.wav_path)
@@ -149,5 +149,6 @@ class ProductionWav:
             raise
 
     def _get_output_path(self):
-        base, _ = os.path.splitext(self.wav_path)
-        return f"{base}_final.wav"
+        prod_dir = "production_wav"
+        base_name = os.path.splitext(os.path.basename(self.wav_path))[0]
+        return os.path.join(prod_dir, f"{base_name}_final.wav")

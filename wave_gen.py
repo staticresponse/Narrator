@@ -131,7 +131,7 @@ class WAVGenerator:
         temp_files = []
         
         for i, chunk in enumerate(chunk_data):
-            temp_file = chunk["filename"]
+            temp_file = chunk["filename"] 
             if os.path.exists(temp_file):
                 duration = get_wav_duration(temp_file)
                 chapter = chunk["chapter"]
@@ -190,7 +190,12 @@ class WAVGenerator:
             raise e
 
     def update_metadata_with_runtime(self, chapter_timings):
-        metadata_path = self.file_path.replace(".txt", ".meta")
+        """
+        Updates the .meta file in the metadata directory with chapter runtimes.
+        """
+        base_name = os.path.splitext(os.path.basename(self.file_path))[0]
+        metadata_path = os.path.join("metadata", f"{base_name}.meta")
+
         try:
             with open(metadata_path, "r", encoding="utf-8") as f:
                 metadata = json.load(f)
@@ -198,13 +203,14 @@ class WAVGenerator:
             logger.error(f"❌ Could not load metadata file '{metadata_path}': {e}")
             return
 
-        metadata["chapter_runtime"] = []
-        for chapter, times in chapter_timings.items():
-            metadata["chapter_runtime"].append({
+        metadata["chapter_runtime"] = [
+            {
                 "chapter": chapter,
                 "starttime": round(times["starttime"], 2),
                 "endtime": round(times["endtime"], 2)
-            })
+            }
+            for chapter, times in chapter_timings.items()
+        ]
 
         try:
             with open(metadata_path, "w", encoding="utf-8") as f:
@@ -212,6 +218,7 @@ class WAVGenerator:
             logger.info(f"✅ Updated metadata with chapter_runtime in {metadata_path}")
         except Exception as e:
             logger.error(f"❌ Failed to write updated metadata: {e}")
+
 
 
 class KokoroGenerator(WAVGenerator):

@@ -1,0 +1,80 @@
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #121212;
+    color: #e0e0e0;
+  }
+
+  .bin {
+    border-color: #444;
+  }
+
+  /* Table dark mode */
+  .table {
+    color: #e0e0e0;
+    background-color: #1e1e1e;
+  }
+
+  .table-striped > tbody > tr:nth-of-type(odd) {
+    background-color: #2a2a2a;
+  }
+
+  .table-bordered {
+    border-color: #444;
+  }
+
+  .table-bordered th,
+  .table-bordered td {
+    border-color: #444;
+  }
+
+  thead tr {
+    background-color: #2c2c2c;
+    color: #f1f1f1;
+  }
+
+  /* Buttons dark mode */
+  .btn-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+  }
+
+  .btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+  }
+
+  .btn-success {
+    background-color: #198754;
+    border-color: #198754;
+  }
+
+  .btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+  }
+
+  .btn:hover {
+    filter: brightness(1.1);
+  }
+
+  /* Optional: container spacing contrast */
+  .container {
+    background-color: #181818;
+    padding: 1rem;
+    border-radius: 8px;
+  }
+
+  /* Optional: table row hover */
+  .table tbody tr:hover {
+    background-color: #333;
+  }
+
+  /* Optional: link color overrides if needed */
+  a {
+    color: #66bfff;
+  }
+
+  a:hover {
+    color: #99d1ff;
+  }
+}

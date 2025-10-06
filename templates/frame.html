@@ -7,6 +7,7 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap-icons.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/upload.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/dark-override.css') }}">
     <title>{{ title }}</title>
         <style>
         .bin-container { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -41,6 +42,15 @@ document.addEventListener('DOMContentLoaded', () => {
     updateLineNumbers();
 });
 </script>
+<script>
+  const userPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.setAttribute('data-bs-theme', userPrefersDark ? 'dark' : 'light');
+
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    document.documentElement.setAttribute('data-bs-theme', e.matches ? 'dark' : 'light');
+  });
+</script>
+
   </body>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </html>

@@ -111,6 +111,7 @@ class TextIn:
             Applies phoneme replacements before saving.
         '''
         # Apply phoneme replacements to the full body (not intro/outtro)
+        text = text.lower()
         text = self.apply_custom_phenomes(text)
         full_text = self.intro + "\n\n" + text + "\n" + self.outtro
 
@@ -334,8 +335,9 @@ class TextIn:
             "filename": os.path.basename(filename),
             "chapters": [f"Chapter {i}" for i in range(start_chapter, end_chapter + 1)]
         }
+        base_name = os.path.splitext(os.path.basename(filename))[0]
+        meta_filename = os.path.join(f"metadata/{base_name}.meta")
 
-        meta_filename = os.path.splitext(filename)[0] + ".meta"
         with open(meta_filename, "w", encoding="utf-8") as meta_file:
             json.dump(metadata, meta_file, indent=2)
 

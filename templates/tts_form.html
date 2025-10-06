@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container mt-5">
     <h1 class="mb-4">Generate TTS</h1>
-    <form action="{{ url_for('generate_tts') }}" method="POST">
+    <form action="{{ url_for('tts.generate_tts') }}" method="POST">
         <input type="hidden" name="filename" value="{{ filename }}">
 
         <div class="mb-3">
@@ -38,7 +38,7 @@
 
         <div class="d-flex justify-content-between">
             <button type="submit" class="btn btn-success">Generate</button>
-            <button type="submit" formaction="{{ url_for('add_to_queue') }}" class="btn btn-primary">Add to Queue</button>
+            <button type="submit" formaction="{{ url_for('tts.add_to_queue') }}" class="btn btn-primary">Add to Queue</button>
         </div>
     </form>
 </div>
